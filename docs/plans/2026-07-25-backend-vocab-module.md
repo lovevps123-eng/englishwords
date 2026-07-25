@@ -500,7 +500,7 @@ git commit -m "feat(vocab): 幂等批量提交答题结果"
 
 **Interfaces:**
 - Consumes: Task 1/3/4 的模型与 helper
-- Produces: `POST /api/vocab/collect` body `{"word": str}` → 200 `{"status": "collected", "word_id": str}` / 404（词典无此词）/ 200 `{"status": "exists"}`；`GET /api/vocab/stats` → `{"learning", "mastered", "due_today", "days_active", "streak"}`
+- Produces: `POST /api/vocab/collect` body `{"word": str}` → 200 `{"status": "collected", "word_id": str}` / 404（词典无此词）/ 200 `{"status": "exists"}`；`GET /api/vocab/study-stats` → `{"learning", "mastered", "due_today", "days_active", "streak"}`
 
 - [ ] **Step 1: 写失败测试（追加）**
 
@@ -530,7 +530,7 @@ async def test_stats_counts(client: AsyncClient):
         {"client_id": "s1", "word_id": str(ids[0]), "feedback": "know"},
         {"client_id": "s2", "word_id": str(ids[1]), "feedback": "unknown"},
     ]}, headers=headers)
-    resp = await client.get("/api/vocab/stats", headers=headers)
+    resp = await client.get("/api/vocab/study-stats", headers=headers)
     body = resp.json()
     assert body["learning"] == 2 and body["mastered"] == 0
     assert body["days_active"] == 1 and body["streak"] == 1
@@ -568,7 +568,7 @@ async def collect_word(
     return {"status": "collected", "word_id": str(entry.id)}
 
 
-@router.get("/stats")
+@router.get("/study-stats")
 async def vocab_stats(
     user=Depends(get_current_user), db: AsyncSession = Depends(get_db),
 ):

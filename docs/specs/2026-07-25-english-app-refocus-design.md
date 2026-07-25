@@ -61,7 +61,7 @@ iOS App (SwiftUI, iOS 17+, SwiftData 本地缓存)
 - `GET /api/vocab/queue?date=` 当日队列（新词+复习词，含词条全量数据）
 - `POST /api/vocab/results` 批量提交答题结果（幂等，支持离线补交）
 - `POST /api/vocab/collect` 从阅读模块收藏生词入队
-- `GET /api/vocab/stats` 累计/连续天数/各层进度
+- `GET /api/vocab/study-stats` 累计/连续天数/各层进度
 
 ### 2. 发音跟读
 
@@ -88,7 +88,7 @@ iOS App (SwiftUI, iOS 17+, SwiftData 本地缓存)
 Tab：**今日 / 单词 / 听说 / 阅读 / 我的**
 
 - **今日**：每日固定动作清单（背词、跟读、听力 1 组、阅读 1 篇）+ 完成打卡 + 连续天数。是复习方案"每日固定动作"的执行载体。
-- **我的**：难度档切换（基础/拔高）、每日新词量设置、统计（复用 /api/vocab/stats + listening 记录）。
+- **我的**：难度档切换（基础/拔高）、每日新词量设置、统计（复用 /api/vocab/study-stats + listening 记录）。
 
 ## 错误处理
 
