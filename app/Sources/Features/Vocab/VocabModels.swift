@@ -38,14 +38,24 @@ final class CachedWord {
     }
 }
 
+/// 答题反馈三档，与后端 /api/vocab/results 契约的字符串常量一一对应（不得改名）。
+/// 用类型约束替代裸 String：VocabStore.submit() 只接受这三个合法值，杜绝脏值混入
+/// PendingResult 批次导致 sync() 整批 400（后端契约：任一条目非法整批失败无副作用）。
+enum Feedback: String, Codable {
+    case know
+    case fuzzy
+    case unknown
+}
+
 /// 离线补交队列：submit() 立即本地写入一行，sync() 成功后按行删除。
 /// clientId 唯一（App 端生成的 UUID）：后端 /api/vocab/results 以 client_id 为幂等主键去重，
 /// 重发同一批不会重复计入进度。
+/// feedback 字段本身仍存 String（rawValue）——@Model 存储层保持简单，类型安全由 VocabStore.submit()
+/// 的 Feedback 参数在入口处把关，构造时用 feedback.rawValue 写入。
 @Model
 final class PendingResult {
     @Attribute(.unique) var clientId: String
     var wordId: String
-    /// "know" | "fuzzy" | "unknown"（后端契约常量，不得改名）
     var feedback: String
     var createdAt: Date
 

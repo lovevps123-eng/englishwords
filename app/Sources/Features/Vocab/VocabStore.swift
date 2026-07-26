@@ -16,9 +16,18 @@ final class VocabStore {
 
     /// 拉取当日队列并**覆盖**本地缓存：先清空旧 CachedWord 再插入新集合，
     /// 避免重复调用累积重复行。不影响 PendingResult（不同表，尚未同步的答题结果不会被清掉）。
+    ///
+    /// reconcile：未同步的 PendingResult 记着"本地已答但服务端还不知道"的词。如果无条件覆盖，
+    /// 这些词在新队列里会以 answered=false 重新出现——todayProgress 倒退，且用户会对同一词
+    /// 再答一次，产生第二条 clientId（SRS 被重复推进）。所以写入新集合时，serverId 命中
+    /// 未同步 PendingResult.wordId 集合的词一律直接置 answered=true，不管服务端这次还给不给这词。
     func refreshQueue(tier: Int, newLimit: Int) async throws {
         let response: QueueResponse = try await apiClient.get(
             "/api/vocab/queue?new_limit=\(newLimit)&tier=\(tier)"
+        )
+
+        let unsyncedWordIds = Set(
+            (try? modelContext.fetch(FetchDescriptor<PendingResult>()))?.map(\.wordId) ?? []
         )
 
         let existing = try modelContext.fetch(FetchDescriptor<CachedWord>())
@@ -27,18 +36,21 @@ final class VocabStore {
         }
 
         for payload in response.new {
-            modelContext.insert(try makeCachedWord(from: payload, group: "new"))
+            modelContext.insert(try makeCachedWord(from: payload, group: "new", unsyncedWordIds: unsyncedWordIds))
         }
         for payload in response.review {
-            modelContext.insert(try makeCachedWord(from: payload, group: "review"))
+            modelContext.insert(try makeCachedWord(from: payload, group: "review", unsyncedWordIds: unsyncedWordIds))
         }
 
         try modelContext.save()
     }
 
     /// 本地生成幂等 clientId，立即入队并把词标记已答；不等待网络，UI 可即时响应。
-    func submit(feedback: String, for word: CachedWord) {
-        let pending = PendingResult(clientId: UUID().uuidString, wordId: word.serverId, feedback: feedback)
+    /// feedback 收紧为 Feedback 枚举（入口把关），避免脏字符串混进 PendingResult 批次。
+    func submit(feedback: Feedback, for word: CachedWord) {
+        let pending = PendingResult(
+            clientId: UUID().uuidString, wordId: word.serverId, feedback: feedback.rawValue
+        )
         modelContext.insert(pending)
         word.answered = true
         try? modelContext.save()
@@ -75,7 +87,9 @@ final class VocabStore {
         return (done, all.count)
     }
 
-    private func makeCachedWord(from payload: WordPayload, group: String) throws -> CachedWord {
+    private func makeCachedWord(
+        from payload: WordPayload, group: String, unsyncedWordIds: Set<String>
+    ) throws -> CachedWord {
         let definitionsData = try JSONEncoder().encode(payload.definitions)
         let examplesData = try JSONEncoder().encode(payload.examples)
         return CachedWord(
@@ -85,7 +99,8 @@ final class VocabStore {
             definitionsJSON: String(data: definitionsData, encoding: .utf8) ?? "[]",
             examplesJSON: String(data: examplesData, encoding: .utf8) ?? "[]",
             stage: payload.stage,
-            group: group
+            group: group,
+            answered: unsyncedWordIds.contains(payload.id)
         )
     }
 }

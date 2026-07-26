@@ -81,8 +81,8 @@ final class VocabStoreTests: XCTestCase {
         context.insert(word1)
         context.insert(word2)
 
-        store.submit(feedback: "know", for: word1)
-        store.submit(feedback: "fuzzy", for: word2)
+        store.submit(feedback: .know, for: word1)
+        store.submit(feedback: .fuzzy, for: word2)
 
         let pending = try context.fetch(FetchDescriptor<PendingResult>())
         XCTAssertEqual(pending.count, 2)
@@ -139,5 +139,46 @@ final class VocabStoreTests: XCTestCase {
         try await store.refreshQueue(tier: 1, newLimit: 50)
         words = try context.fetch(FetchDescriptor<CachedWord>())
         XCTAssertEqual(words.count, 2, "重复 refreshQueue 不应重复累积")
+    }
+
+    // ④ reconcile：submit 一个词但还没 sync（PendingResult 未同步）时，refreshQueue 覆盖缓存不应
+    // 把这个词的 answered 状态冲回 false——否则用户会对同一词再答一次（产生第二条 clientId），
+    // todayProgress 也会倒退。
+    func testRefreshQueuePreservesAnsweredStateForUnsyncedPendingWord() async throws {
+        let store = VocabStore(modelContext: context, apiClient: apiClient)
+        let word = CachedWord(
+            serverId: "w1", word: "apple", phonetic: nil,
+            definitionsJSON: "[]", examplesJSON: "[]", stage: 0, group: "new"
+        )
+        context.insert(word)
+        store.submit(feedback: .know, for: word)
+
+        let progressBefore = store.todayProgress
+        XCTAssertEqual(progressBefore.done, 1)
+        XCTAssertEqual(progressBefore.total, 1)
+
+        // 还没 sync，服务端不知道这个词已答，队列响应里同一 serverId 又出现了
+        VocabAPIMockProtocol.queueResponseJSON = """
+        {
+          "new": [
+            {"id": "w1", "word": "apple", "phonetic": null, "definitions": [], "examples": [], "stage": 0}
+          ],
+          "review": []
+        }
+        """
+
+        try await store.refreshQueue(tier: 1, newLimit: 50)
+
+        let words = try context.fetch(FetchDescriptor<CachedWord>())
+        XCTAssertEqual(words.count, 1)
+        XCTAssertEqual(words.first?.serverId, "w1")
+        XCTAssertTrue(words.first?.answered ?? false, "本地已答未同步的词，刷新队列后仍应是 answered")
+
+        let progressAfter = store.todayProgress
+        XCTAssertEqual(progressAfter.done, 1, "todayProgress 不应因 refreshQueue 而倒退")
+        XCTAssertEqual(progressAfter.total, 1)
+
+        let pending = try context.fetch(FetchDescriptor<PendingResult>())
+        XCTAssertEqual(pending.count, 1, "refreshQueue 不应产生第二条 pending")
     }
 }
