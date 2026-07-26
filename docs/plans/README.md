@@ -6,7 +6,7 @@
 
 | # | 计划 | 仓库 | 状态 | 前置 |
 |---|------|------|------|------|
-| 1 | [iOS 语音识别 Spike](2026-07-25-ios-speech-spike.md) — SFSpeechRecognizer 中式口音真机验证 | englishwords | **源码已备好（spike/Sources），待用户真机执行 Task 3** | 无 |
+| 1 | [iOS 语音识别 Spike](2026-07-25-ios-speech-spike.md) — SFSpeechRecognizer 中式口音真机验证 | englishwords | **Xcode 工程已生成并通过模拟器运行验证，待用户真机执行 Task 3** | 无 |
 | 2 | [后端词汇模块](2026-07-25-backend-vocab-module.md) — 队列/SRS/幂等提交/统计/例句富化 | senior-platform | **✅ 完成并已上生产（2026-07-26，例句 3677 词全量富化）** | — |
 | 3 | 后端听力模块 — listening_sets/题目生成/判分 | senior-platform | 待写计划 | #2 落地后 |
 | 4 | iOS App v1 — 五 Tab 完整应用 | englishwords | 待写计划 | #1 结论 + #2 API 可用 |

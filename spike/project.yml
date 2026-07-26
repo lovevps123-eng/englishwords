@@ -1,0 +1,25 @@
+name: SpeechSpike
+options:
+  bundleIdPrefix: com.masf
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  SpeechSpike:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Info.plist
+      properties:
+        NSMicrophoneUsageDescription: 录音用于发音跟读评分测试
+        NSSpeechRecognitionUsageDescription: 本地识别你的跟读发音
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.masf.speechspike
+        DEVELOPMENT_TEAM: 9H47USBKK4
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
