@@ -37,8 +37,16 @@ private struct ErrorDetail: Decodable {
 final class APIClient {
     static let shared = APIClient()
 
+    /// 后端 login 接口凭此值豁免 Turnstile 校验；仅供本 App 自用，不对外公开。
+    private let appClientKey = "3da352b803d086be8ba6d1cc7bb400829a3acb322476df5f"
+
     private let session: URLSession
     private let keychain: KeychainStore
+
+    /// 401 → refresh 的 single-flight 去重：并发请求共享同一个 in-flight refresh task 的结果，
+    /// 避免各自触发 /api/auth/refresh。用锁保护，因为 APIClient 不是 actor，可能被多线程并发调用。
+    private let refreshLock = NSLock()
+    private var refreshTask: Task<Bool, Never>?
 
     init(session: URLSession = .shared, keychain: KeychainStore = .shared) {
         self.session = session
@@ -86,6 +94,7 @@ final class APIClient {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(appClientKey, forHTTPHeaderField: "X-App-Client")
         if let body {
             urlRequest.httpBody = body
         }
@@ -125,7 +134,33 @@ final class APIClient {
     }
 
     /// 用 Keychain 中的 refresh token 换取新 token 对；成功则写回 Keychain。
+    /// single-flight：并发调用共享同一个 in-flight task 的结果，避免各自打 /api/auth/refresh；
+    /// task 完成后置 nil，下次 401 会重新发起。
     private func refreshTokens() async -> Bool {
+        refreshLock.lock()
+        if let existing = refreshTask {
+            refreshLock.unlock()
+            return await existing.value
+        }
+        let task = Task { [weak self] () -> Bool in
+            guard let self else { return false }
+            return await self.performRefresh()
+        }
+        refreshTask = task
+        refreshLock.unlock()
+
+        let result = await task.value
+
+        // 仅创建者（未走上面 existing 分支的那一路）会执行到这里，负责清空，
+        // 让下一次 401 能重新发起 refresh。
+        refreshLock.lock()
+        refreshTask = nil
+        refreshLock.unlock()
+
+        return result
+    }
+
+    private func performRefresh() async -> Bool {
         guard let tokens = keychain.loadTokens() else { return false }
         do {
             let body = try JSONEncoder().encode(RefreshRequest(refreshToken: tokens.refresh))
@@ -133,8 +168,7 @@ final class APIClient {
                 path: "/api/auth/refresh", method: "POST", body: body, authorized: false, allowRefresh: false
             )
             let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
-            keychain.saveTokens(access: decoded.accessToken, refresh: decoded.refreshToken)
-            return true
+            return keychain.saveTokens(access: decoded.accessToken, refresh: decoded.refreshToken)
         } catch {
             return false
         }

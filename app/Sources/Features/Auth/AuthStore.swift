@@ -42,7 +42,12 @@ final class AuthStore {
             let token: TokenResponse = try await apiClient.post(
                 "/api/auth/login", body: request, authorized: false
             )
-            keychain.saveTokens(access: token.accessToken, refresh: token.refreshToken)
+            let saved = keychain.saveTokens(access: token.accessToken, refresh: token.refreshToken)
+            guard saved else {
+                errorMessage = "本机安全存储失败，请重试"
+                isAuthenticated = false
+                return
+            }
             isAuthenticated = true
         } catch {
             errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
