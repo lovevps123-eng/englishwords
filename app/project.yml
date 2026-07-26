@@ -1,0 +1,51 @@
+name: EnglishWords
+options:
+  bundleIdPrefix: com.masf
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  EnglishWords:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Info.plist
+      properties:
+        NSMicrophoneUsageDescription: 录音用于跟读发音评分
+        NSSpeechRecognitionUsageDescription: 本地识别你的跟读发音
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.masf.englishwords
+        DEVELOPMENT_TEAM: 9H47USBKK4
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+  EnglishWordsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: EnglishWords
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 9H47USBKK4
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  EnglishWords:
+    build:
+      targets:
+        EnglishWords: all
+        EnglishWordsTests: [test]
+    test:
+      targets:
+        - EnglishWordsTests
+    run:
+      config: Debug
