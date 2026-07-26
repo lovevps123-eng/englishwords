@@ -44,24 +44,25 @@ iOS App (SwiftUI, iOS 17+, SwiftData 本地缓存)
 | 例句（优先级从高到低） | ① 库内高考英语真题语料 ② Tatoeba（CC-BY，带中文翻译） ③ Merriam-Webster Learner's API（免费非商用，批量抓取入库） ④ LLM 生成（标记来源，日后可替换） | 真实语料优先；每词 1~3 句 |
 | 例句中文翻译、记忆提示、例句适龄筛选 | LLM（一次性入库脚本） | LLM 只做筛选/翻译/提示，不做主要例句来源 |
 
-- 入库脚本 `scripts/import_vocab.py`：一次性执行，产出完整词库；来源字段（source）记录每条例句出处。
-- **难度分层**：words.tier 字段（1=高考3500，2=拔高层）。学生在 App"我的"页切档，各模块跟随。
+- 入库脚本（senior-platform 已实现）：`scripts/import_ecdict.py`（词条基础数据，已在生产执行过）+ `scripts/enrich_examples.py`（例句富化，--tier/--limit/--tatoeba 参数，幂等可重跑）；来源字段（source）记录每条例句出处。
+- **难度分层**：`dictionary_entries.tier` 字段（1=高考基础层，2=拔高层）。学生在 App"我的"页切档，各模块跟随。
 
 **背词逻辑：**
-- 简化版 SM-2 间隔重复：三档反馈（认识/模糊/不认识）驱动间隔调整。
+- 简化版 SM-2 间隔重复：三档反馈驱动间隔调整。**wire 常量（App↔后端契约）：`know`（认识）/ `fuzzy`（模糊）/ `unknown`（不认识）**；间隔 `{1:1, 2:3, 3:7, 4:14, 5:30}` 天，stage≥5 视为掌握。
 - 每日队列 = 新词 N（默认 50，可调）+ 到期复习词；服务端生成队列，App 启动时预取当天全量。
 - 发音朗读：AVSpeechSynthesizer 本地合成（免费、离线、零延迟），不走服务端 TTS。
 - 离线：队列与词条缓存在 SwiftData；答题结果本地排队，联网后批量同步（App 为准，服务端 merge）。
 
-**新增表：**
-- `words`: word, phonetic, definitions(JSONB), tier, tags, examples(JSONB: text/cn/source)
-- `user_word_progress`: user_id, word_id, srs_level, ease, next_review_date, correct/wrong_count
+**表结构（senior-platform 已实现，如实记录）：**
+- `dictionary_entries`（复用现有 ECDICT 词典表）+ 新列：`tier: int`（1/2）、`examples: JSONB`，结构 `[{"en": str, "cn": str, "source": "gaokao"|"tatoeba"|"freedict"|"llm"}]`，每词最多 3 条
+- `user_word_progress`: user_id, word_id, stage(0=收藏未学, 1-5=SRS), collected(bool), next_review_at, correct_count, wrong_count；唯一约束 (user_id, word_id)
+- `vocab_result_logs`: client_id(str, 全局主键，App 端生成 UUID), user_id —— 幂等去重依据
 
-**新增 API：**
-- `GET /api/vocab/queue?date=` 当日队列（新词+复习词，含词条全量数据）
-- `POST /api/vocab/results` 批量提交答题结果（幂等，支持离线补交）
-- `POST /api/vocab/collect` 从阅读模块收藏生词入队
-- `GET /api/vocab/study-stats` 累计/连续天数/各层进度
+**API 契约（senior-platform 已实现并有测试锁定）：**
+- `GET /api/vocab/queue?new_limit=50&tier=1` → `{"new": [word...], "review": [word...]}`；word = `{"id","word","phonetic","definitions","examples","stage"}`；new_limit 服务端钳制到 [0,200]
+- `POST /api/vocab/results` body `{"results":[{"client_id","word_id","feedback"}]}` → `{"processed","skipped"}`；幂等键为全局 client_id，重放安全（离线补交可整批重发）；任一条目非法整批 400 无副作用
+- `POST /api/vocab/collect` body `{"word": str}` → `{"status":"collected"|"exists","word_id"}` / 404（词典无此词）
+- `GET /api/vocab/study-stats` → `{"learning","mastered","due_today","days_active","streak"}`；streak 与站内 quiz 一致采用"宽限一天"语义。各层（tier）进度拆分为后续可加性扩展，App"我的"页规划时再定
 
 ### 2. 发音跟读
 
@@ -93,7 +94,7 @@ Tab：**今日 / 单词 / 听说 / 阅读 / 我的**
 ## 错误处理
 
 - 网络失败：单词模块全离线可用（预取+补交）；阅读/听力显示缓存内容或友好空态。
-- 同步冲突：results 提交幂等（client 生成 UUID），服务端按 (user_id, word_id, client_id) 去重。
+- 同步冲突：results 提交幂等（client 生成 UUID），服务端按全局 client_id 主键去重；进度行并发冲突走重试消歧，不丢反馈。
 - SFSpeechRecognizer 不可用/权限拒绝：跟读模块降级为"仅朗读示范"，明确提示。
 
 ## 测试
