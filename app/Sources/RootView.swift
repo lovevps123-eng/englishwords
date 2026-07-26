@@ -1,5 +1,6 @@
 // RootView.swift — 五 Tab 根视图：今日/单词/跟读/阅读/我的
 import SwiftUI
+import SwiftData
 
 struct RootView: View {
     var body: some View {
@@ -7,7 +8,7 @@ struct RootView: View {
             PlaceholderView(text: "今日页面，敬请期待")
                 .tabItem { Label("今日", systemImage: "sun.max") }
 
-            PlaceholderView(text: "单词页面，敬请期待")
+            VocabView()
                 .tabItem { Label("单词", systemImage: "rectangle.stack") }
 
             PlaceholderView(text: "跟读页面，敬请期待")
@@ -36,5 +37,11 @@ private struct PlaceholderView: View {
 }
 
 #Preview {
-    RootView()
+    let container = try! ModelContainer(
+        for: Schema([CachedWord.self, PendingResult.self]),
+        configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
+    )
+    return RootView()
+        .modelContainer(container)
+        .environment(VocabStore(modelContext: container.mainContext))
 }

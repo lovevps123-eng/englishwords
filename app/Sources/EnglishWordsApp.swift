@@ -7,10 +7,13 @@ struct EnglishWordsApp: App {
     let modelContainer: ModelContainer
     @State private var appStore = AppStore()
     @State private var authStore = AuthStore()
+    @State private var vocabStore: VocabStore
 
     init() {
         do {
-            modelContainer = try ModelContainer(for: Schema([CachedWord.self, PendingResult.self]))
+            let container = try ModelContainer(for: Schema([CachedWord.self, PendingResult.self]))
+            modelContainer = container
+            _vocabStore = State(initialValue: VocabStore(modelContext: container.mainContext))
         } catch {
             fatalError("无法创建 SwiftData 容器: \(error)")
         }
@@ -27,6 +30,7 @@ struct EnglishWordsApp: App {
             }
             .environment(appStore)
             .environment(authStore)
+            .environment(vocabStore)
         }
         .modelContainer(modelContainer)
     }

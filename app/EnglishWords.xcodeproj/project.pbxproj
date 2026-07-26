@@ -18,7 +18,9 @@
 		B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E185D3E84355D37A51A67F /* VocabStore.swift */; };
 		D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF528BB8E171A221EB4F079 /* VocabModels.swift */; };
 		E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */; };
+		E732A44C490259FFDC9BAD9E /* VocabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E43F499BE06780638E49AB /* VocabView.swift */; };
 		E9B730A275BB257204690B79 /* EnglishWordsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F02AF3318F47A8E590F133 /* EnglishWordsApp.swift */; };
+		ECF0314EA02D1AFF54F55B0D /* WordCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796D233DA767AA13B080430A /* WordCardView.swift */; };
 		F57FC3C7A89C631AFBD2F339 /* DTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A6812FB507026EBBB581E8 /* DTO.swift */; };
 /* End PBXBuildFile section */
 
@@ -34,12 +36,14 @@
 
 /* Begin PBXFileReference section */
 		10E185D3E84355D37A51A67F /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
+		18E43F499BE06780638E49AB /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		24A888ED7597C6ACCC88FE16 /* EnglishWordsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EnglishWordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		52F2E33609161938221D63D1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		5D1C23D3C55A214D957A2982 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		62A6812FB507026EBBB581E8 /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
 		6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientRefreshTests.swift; sourceTree = "<group>"; };
+		796D233DA767AA13B080430A /* WordCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCardView.swift; sourceTree = "<group>"; };
 		803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStoreTests.swift; sourceTree = "<group>"; };
 		96995F6C1A70BFC24A3EDE68 /* EnglishWords.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishWords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		982EC216281476DED6532A3E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
@@ -124,6 +128,8 @@
 			children = (
 				ECF528BB8E171A221EB4F079 /* VocabModels.swift */,
 				10E185D3E84355D37A51A67F /* VocabStore.swift */,
+				18E43F499BE06780638E49AB /* VocabView.swift */,
+				796D233DA767AA13B080430A /* WordCardView.swift */,
 			);
 			path = Vocab;
 			sourceTree = "<group>";
@@ -219,6 +225,8 @@
 				7372F92B8985056328479B53 /* RootView.swift in Sources */,
 				D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */,
 				B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */,
+				E732A44C490259FFDC9BAD9E /* VocabView.swift in Sources */,
+				ECF0314EA02D1AFF54F55B0D /* WordCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
