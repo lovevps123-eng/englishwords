@@ -14,7 +14,7 @@ struct RootView: View {
             PlaceholderView(text: "跟读页面，敬请期待")
                 .tabItem { Label("跟读", systemImage: "mic") }
 
-            PlaceholderView(text: "阅读页面，敬请期待")
+            ReadingListView()
                 .tabItem { Label("阅读", systemImage: "book") }
 
             SettingsView()
@@ -46,4 +46,5 @@ private struct PlaceholderView: View {
         .environment(VocabStore(modelContext: container.mainContext))
         .environment(SettingsStore(defaults: UserDefaults(suiteName: "preview")!))
         .environment(AuthStore())
+        .environment(ReadingStore())
 }

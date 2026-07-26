@@ -9,6 +9,7 @@ struct EnglishWordsApp: App {
     @State private var authStore = AuthStore()
     @State private var vocabStore: VocabStore
     @State private var settingsStore = SettingsStore()
+    @State private var readingStore = ReadingStore()
 
     init() {
         do {
@@ -33,6 +34,7 @@ struct EnglishWordsApp: App {
             .environment(authStore)
             .environment(vocabStore)
             .environment(settingsStore)
+            .environment(readingStore)
         }
         .modelContainer(modelContainer)
     }
