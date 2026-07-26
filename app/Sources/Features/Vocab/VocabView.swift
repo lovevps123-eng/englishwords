@@ -6,18 +6,17 @@ import SwiftData
 
 struct VocabView: View {
     @Environment(VocabStore.self) private var store
+    @Environment(SettingsStore.self) private var settings
 
     @Query(sort: [SortDescriptor(\CachedWord.group), SortDescriptor(\CachedWord.serverId)])
     private var words: [CachedWord]
 
-    @State private var isLoading = false
+    // 初始 true：首次渲染时队列尚未拉取，避免瞬间先看到（错误的）空态/完成态文案再跳到加载中。
+    @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var syncMessage: String?
+    @State private var syncFailed = false
     @State private var speechService = SpeechService()
-
-    // TODO(Task 5): tier/newLimit 应来自设置页；设置 UI 落地前先用固定值。
-    private let tier = 1
-    private let newLimit = 50
 
     private var unansweredWords: [CachedWord] {
         words.filter { !$0.answered }
@@ -55,6 +54,8 @@ struct VocabView: View {
                 .id(currentWord.persistentModelID)
             }
             .padding()
+        } else if words.isEmpty {
+            emptyQueueView
         } else {
             completionView
         }
@@ -80,8 +81,13 @@ struct VocabView: View {
 
             Button {
                 Task {
-                    await store.sync()
-                    syncMessage = "同步完成"
+                    if let result = await store.sync() {
+                        syncFailed = false
+                        syncMessage = "已同步 \(result.processed) 条"
+                    } else {
+                        syncFailed = true
+                        syncMessage = "同步失败，稍后自动重试"
+                    }
                 }
             } label: {
                 Text("同步")
@@ -93,8 +99,21 @@ struct VocabView: View {
             if let syncMessage {
                 Text(syncMessage)
                     .font(.footnote)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(syncFailed ? .red : .green)
             }
+            Spacer()
+        }
+        .padding()
+    }
+
+    /// 队列本身为空（服务端今日无新词/复习词可学），区别于"已作答完毕"的完成态。
+    private var emptyQueueView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Text("今日没有需要学习的词，去阅读逛逛吧")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
             Spacer()
         }
         .padding()
@@ -119,13 +138,18 @@ struct VocabView: View {
     }
 
     /// 仅当本地完全没有缓存队列时自动拉取；force: true 用于重试按钮（错误态下 words 也可能为空）。
+    /// guard 提前返回也要把 isLoading 收尾成 false——否则初始值 true 会在"本地已有缓存、
+    /// 本次不需要拉取"的路径上卡住，永远停在加载中转不到卡片/完成态。
     private func loadIfNeeded(force: Bool = false) async {
-        guard force || words.isEmpty else { return }
+        guard force || words.isEmpty else {
+            isLoading = false
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            try await store.refreshQueue(tier: tier, newLimit: newLimit)
+            try await store.refreshQueue(tier: settings.tier, newLimit: settings.dailyNewLimit)
         } catch {
             errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
         }

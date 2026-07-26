@@ -5,7 +5,7 @@ import SwiftData
 struct RootView: View {
     var body: some View {
         TabView {
-            PlaceholderView(text: "今日页面，敬请期待")
+            TodayView()
                 .tabItem { Label("今日", systemImage: "sun.max") }
 
             VocabView()
@@ -17,7 +17,7 @@ struct RootView: View {
             PlaceholderView(text: "阅读页面，敬请期待")
                 .tabItem { Label("阅读", systemImage: "book") }
 
-            PlaceholderView(text: "我的页面，敬请期待")
+            SettingsView()
                 .tabItem { Label("我的", systemImage: "person") }
         }
     }
@@ -44,4 +44,6 @@ private struct PlaceholderView: View {
     return RootView()
         .modelContainer(container)
         .environment(VocabStore(modelContext: container.mainContext))
+        .environment(SettingsStore(defaults: UserDefaults(suiteName: "preview")!))
+        .environment(AuthStore())
 }

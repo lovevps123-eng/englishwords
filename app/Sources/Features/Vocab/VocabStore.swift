@@ -56,11 +56,13 @@ final class VocabStore {
         try? modelContext.save()
     }
 
-    /// 批量补交所有待同步结果。成功才删除已提交行；失败（网络/服务端错误）静默保留，
-    /// 不抛出——下次调用自然重试，client_id 幂等保证重发安全。
-    func sync() async {
+    /// 批量补交所有待同步结果。成功才删除已提交行，返回服务端 `{processed, skipped}`；
+    /// 失败（网络/服务端错误）静默保留 pending、返回 nil——下次调用自然重试，client_id 幂等
+    /// 保证重发安全。返回值供 UI 区分"已同步 N 条"与"同步失败，稍后自动重试"（nil = 失败）。
+    @discardableResult
+    func sync() async -> (processed: Int, skipped: Int)? {
         guard let pending = try? modelContext.fetch(FetchDescriptor<PendingResult>()), !pending.isEmpty else {
-            return
+            return (processed: 0, skipped: 0)
         }
 
         let items = pending.map {
@@ -68,15 +70,17 @@ final class VocabStore {
         }
 
         do {
-            let _: SubmitResultsResponse = try await apiClient.post(
+            let response: SubmitResultsResponse = try await apiClient.post(
                 "/api/vocab/results", body: SubmitResultsRequest(results: items)
             )
             for item in pending {
                 modelContext.delete(item)
             }
             try? modelContext.save()
+            return (processed: response.processed, skipped: response.skipped)
         } catch {
             // 静默保留：不清空 pending，下次 sync() 会带着相同 clientId 重发（幂等安全）。
+            return nil
         }
     }
 

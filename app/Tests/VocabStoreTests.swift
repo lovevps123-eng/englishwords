@@ -93,18 +93,22 @@ final class VocabStoreTests: XCTestCase {
         XCTAssertEqual(Set(pending.map(\.wordId)), ["w1", "w2"])
     }
 
-    // ② sync 失败时静默保留 pending（下次可重发），成功后清空已提交行。
+    // ② sync 失败时静默保留 pending（下次可重发）并返回 nil；成功后清空已提交行并返回
+    // {processed, skipped}，供 UI 区分"已同步 N 条"与"同步失败，稍后自动重试"。
     func testSyncClearsPendingOnSuccessAndKeepsOnFailure() async throws {
         let store = VocabStore(modelContext: context, apiClient: apiClient)
         context.insert(PendingResult(clientId: UUID().uuidString, wordId: "w1", feedback: "know"))
 
         VocabAPIMockProtocol.resultsShouldFail = true
-        await store.sync()
+        let failResult = await store.sync()
+        XCTAssertNil(failResult, "同步失败应返回 nil")
         var pending = try context.fetch(FetchDescriptor<PendingResult>())
         XCTAssertEqual(pending.count, 1, "同步失败应静默保留 pending 行")
 
         VocabAPIMockProtocol.resultsShouldFail = false
-        await store.sync()
+        let successResult = await store.sync()
+        XCTAssertEqual(successResult?.processed, 1)
+        XCTAssertEqual(successResult?.skipped, 0)
         pending = try context.fetch(FetchDescriptor<PendingResult>())
         XCTAssertTrue(pending.isEmpty, "同步成功后应清空已提交的 pending 行")
     }
