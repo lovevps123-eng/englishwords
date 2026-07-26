@@ -6,6 +6,7 @@ import SwiftData
 struct EnglishWordsApp: App {
     let modelContainer: ModelContainer
     @State private var appStore = AppStore()
+    @State private var authStore = AuthStore()
 
     init() {
         // 当前无 @Model 类型，后续任务（单词离线队列等）会追加 schema
@@ -18,8 +19,15 @@ struct EnglishWordsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(appStore)
+            Group {
+                if authStore.isAuthenticated {
+                    RootView()
+                } else {
+                    LoginView()
+                }
+            }
+            .environment(appStore)
+            .environment(authStore)
         }
         .modelContainer(modelContainer)
     }
