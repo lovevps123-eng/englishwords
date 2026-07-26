@@ -15,6 +15,9 @@
 		7D9E04B1A48FD020881114DB /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */; };
 		87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92992ADCF557ED09396616C /* DTOTests.swift */; };
 		A48901CBB435B76A141524E1 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982EC216281476DED6532A3E /* KeychainStore.swift */; };
+		B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E185D3E84355D37A51A67F /* VocabStore.swift */; };
+		D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF528BB8E171A221EB4F079 /* VocabModels.swift */; };
+		E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */; };
 		E9B730A275BB257204690B79 /* EnglishWordsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F02AF3318F47A8E590F133 /* EnglishWordsApp.swift */; };
 		F57FC3C7A89C631AFBD2F339 /* DTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A6812FB507026EBBB581E8 /* DTO.swift */; };
 /* End PBXBuildFile section */
@@ -30,17 +33,20 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		10E185D3E84355D37A51A67F /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
 		24A888ED7597C6ACCC88FE16 /* EnglishWordsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EnglishWordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		52F2E33609161938221D63D1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		5D1C23D3C55A214D957A2982 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		62A6812FB507026EBBB581E8 /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
 		6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientRefreshTests.swift; sourceTree = "<group>"; };
+		803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStoreTests.swift; sourceTree = "<group>"; };
 		96995F6C1A70BFC24A3EDE68 /* EnglishWords.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishWords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		982EC216281476DED6532A3E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		B0F02AF3318F47A8E590F133 /* EnglishWordsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishWordsApp.swift; sourceTree = "<group>"; };
 		C92992ADCF557ED09396616C /* DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOTests.swift; sourceTree = "<group>"; };
+		ECF528BB8E171A221EB4F079 /* VocabModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabModels.swift; sourceTree = "<group>"; };
 		F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -49,6 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				3A1024BA624EC72F9BFB3CDC /* Auth */,
+				CAD26BF1BC5091F14BFE21C1 /* Vocab */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -107,8 +114,18 @@
 				6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */,
 				C92992ADCF557ED09396616C /* DTOTests.swift */,
 				5D1C23D3C55A214D957A2982 /* SmokeTests.swift */,
+				803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		CAD26BF1BC5091F14BFE21C1 /* Vocab */ = {
+			isa = PBXGroup;
+			children = (
+				ECF528BB8E171A221EB4F079 /* VocabModels.swift */,
+				10E185D3E84355D37A51A67F /* VocabStore.swift */,
+			);
+			path = Vocab;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -200,6 +217,8 @@
 				A48901CBB435B76A141524E1 /* KeychainStore.swift in Sources */,
 				52103612B9827B57E792D250 /* LoginView.swift in Sources */,
 				7372F92B8985056328479B53 /* RootView.swift in Sources */,
+				D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */,
+				B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,6 +229,7 @@
 				6CBECE7C9A9B84843EC38842 /* APIClientRefreshTests.swift in Sources */,
 				87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */,
 				25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */,
+				E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

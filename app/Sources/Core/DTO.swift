@@ -45,7 +45,7 @@ struct TokenResponse: Decodable {
 
 /// WordPayload.definitions 单条释义：{pos, meaning, example}
 /// example 后端可能为 null（Free Dictionary API 未提供例句时）
-struct Definition: Decodable, Equatable {
+struct Definition: Codable, Equatable {
     let pos: String
     let meaning: String
     let example: String?
@@ -53,7 +53,7 @@ struct Definition: Decodable, Equatable {
 
 /// WordPayload.examples 单条例句：{en, cn, source}
 /// source ∈ "gaokao" | "tatoeba" | "freedict" | "llm"
-struct Example: Decodable, Equatable {
+struct Example: Codable, Equatable {
     let en: String
     let cn: String
     let source: String
@@ -73,6 +73,30 @@ struct WordPayload: Decodable, Equatable {
 struct QueueResponse: Decodable {
     let new: [WordPayload]
     let review: [WordPayload]
+}
+
+/// POST /api/vocab/results 单条结果。feedback ∈ "know" | "fuzzy" | "unknown"（后端契约常量，不得改名）
+struct VocabResultItem: Encodable {
+    let clientId: String
+    let wordId: String
+    let feedback: String
+
+    enum CodingKeys: String, CodingKey {
+        case clientId = "client_id"
+        case wordId = "word_id"
+        case feedback
+    }
+}
+
+/// POST /api/vocab/results 请求体
+struct SubmitResultsRequest: Encodable {
+    let results: [VocabResultItem]
+}
+
+/// POST /api/vocab/results 响应体：重复 client_id 计入 skipped（离线补交幂等，重放安全）
+struct SubmitResultsResponse: Decodable {
+    let processed: Int
+    let skipped: Int
 }
 
 /// GET /api/vocab/study-stats 响应体

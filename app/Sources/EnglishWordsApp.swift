@@ -9,9 +9,8 @@ struct EnglishWordsApp: App {
     @State private var authStore = AuthStore()
 
     init() {
-        // 当前无 @Model 类型，后续任务（单词离线队列等）会追加 schema
         do {
-            modelContainer = try ModelContainer(for: Schema([]))
+            modelContainer = try ModelContainer(for: Schema([CachedWord.self, PendingResult.self]))
         } catch {
             fatalError("无法创建 SwiftData 容器: \(error)")
         }

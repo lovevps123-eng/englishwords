@@ -1,0 +1,143 @@
+// VocabStoreTests.swift — TDD：离线队列（submit 本地入队）+ 幂等同步（sync 成功清空/失败保留）+
+// 队列覆盖写入（refreshQueue 不重复累积）。用 in-memory ModelContainer，网络用自定义 URLProtocol mock。
+import XCTest
+import SwiftData
+@testable import EnglishWords
+
+/// 拦截 /api/vocab/queue 与 /api/vocab/results：
+/// - queue 固定返回 `queueResponseJSON`（测试按需覆盖）
+/// - results 按 `resultsShouldFail` 决定返回 200 还是 500
+private final class VocabAPIMockProtocol: URLProtocol {
+    static var queueResponseJSON = "{\"new\": [], \"review\": []}"
+    static var resultsShouldFail = false
+
+    static func reset() {
+        queueResponseJSON = "{\"new\": [], \"review\": []}"
+        resultsShouldFail = false
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let path = request.url?.path ?? ""
+        switch path {
+        case "/api/vocab/queue":
+            respond(status: 200, body: Self.queueResponseJSON)
+        case "/api/vocab/results":
+            if Self.resultsShouldFail {
+                respond(status: 500, body: "{\"detail\": \"boom\"}")
+            } else {
+                respond(status: 200, body: "{\"processed\": 1, \"skipped\": 0}")
+            }
+        default:
+            respond(status: 404, body: "{\"detail\": \"not found\"}")
+        }
+    }
+
+    override func stopLoading() {}
+
+    private func respond(status: Int, body: String) {
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
+final class VocabStoreTests: XCTestCase {
+    private var container: ModelContainer!
+    private var context: ModelContext!
+    private var apiClient: APIClient!
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        VocabAPIMockProtocol.reset()
+
+        let schema = Schema([CachedWord.self, PendingResult.self])
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        container = try ModelContainer(for: schema, configurations: [configuration])
+        context = ModelContext(container)
+
+        let sessionConfig = URLSessionConfiguration.ephemeral
+        sessionConfig.protocolClasses = [VocabAPIMockProtocol.self]
+        apiClient = APIClient(session: URLSession(configuration: sessionConfig), keychain: .shared)
+    }
+
+    // ① submit 生成 pending 行且 clientId 唯一，并把词标记已答；纯本地，不需要网络。
+    func testSubmitGeneratesPendingRowWithUniqueClientId() throws {
+        let store = VocabStore(modelContext: context, apiClient: apiClient)
+        let word1 = CachedWord(
+            serverId: "w1", word: "apple", phonetic: nil,
+            definitionsJSON: "[]", examplesJSON: "[]", stage: 0, group: "new"
+        )
+        let word2 = CachedWord(
+            serverId: "w2", word: "banana", phonetic: nil,
+            definitionsJSON: "[]", examplesJSON: "[]", stage: 0, group: "new"
+        )
+        context.insert(word1)
+        context.insert(word2)
+
+        store.submit(feedback: "know", for: word1)
+        store.submit(feedback: "fuzzy", for: word2)
+
+        let pending = try context.fetch(FetchDescriptor<PendingResult>())
+        XCTAssertEqual(pending.count, 2)
+        XCTAssertEqual(Set(pending.map(\.clientId)).count, 2, "clientId 应唯一")
+        XCTAssertTrue(word1.answered)
+        XCTAssertTrue(word2.answered)
+        XCTAssertEqual(Set(pending.map(\.feedback)), ["know", "fuzzy"])
+        XCTAssertEqual(Set(pending.map(\.wordId)), ["w1", "w2"])
+    }
+
+    // ② sync 失败时静默保留 pending（下次可重发），成功后清空已提交行。
+    func testSyncClearsPendingOnSuccessAndKeepsOnFailure() async throws {
+        let store = VocabStore(modelContext: context, apiClient: apiClient)
+        context.insert(PendingResult(clientId: UUID().uuidString, wordId: "w1", feedback: "know"))
+
+        VocabAPIMockProtocol.resultsShouldFail = true
+        await store.sync()
+        var pending = try context.fetch(FetchDescriptor<PendingResult>())
+        XCTAssertEqual(pending.count, 1, "同步失败应静默保留 pending 行")
+
+        VocabAPIMockProtocol.resultsShouldFail = false
+        await store.sync()
+        pending = try context.fetch(FetchDescriptor<PendingResult>())
+        XCTAssertTrue(pending.isEmpty, "同步成功后应清空已提交的 pending 行")
+    }
+
+    // ③ refreshQueue 覆盖旧缓存：重复调用不会累积重复的 CachedWord 行。
+    func testRefreshQueueOverwritesOldCacheWithoutDuplicating() async throws {
+        let store = VocabStore(modelContext: context, apiClient: apiClient)
+        context.insert(CachedWord(
+            serverId: "stale", word: "stale-word", phonetic: nil,
+            definitionsJSON: "[]", examplesJSON: "[]", stage: 0, group: "new"
+        ))
+
+        VocabAPIMockProtocol.queueResponseJSON = """
+        {
+          "new": [
+            {"id": "n1", "word": "apple", "phonetic": "/ˈæpl/", "definitions": [], "examples": [], "stage": 0}
+          ],
+          "review": [
+            {"id": "r1", "word": "banana", "phonetic": null, "definitions": [], "examples": [], "stage": 3}
+          ]
+        }
+        """
+
+        try await store.refreshQueue(tier: 1, newLimit: 50)
+
+        var words = try context.fetch(FetchDescriptor<CachedWord>())
+        XCTAssertEqual(words.count, 2, "旧的 stale 缓存应被清空，只剩本次响应的两条")
+        XCTAssertFalse(words.contains { $0.serverId == "stale" })
+        XCTAssertEqual(Set(words.map(\.group)), ["new", "review"])
+
+        // 重复调用同一响应，不应累积出重复行
+        try await store.refreshQueue(tier: 1, newLimit: 50)
+        words = try context.fetch(FetchDescriptor<CachedWord>())
+        XCTAssertEqual(words.count, 2, "重复 refreshQueue 不应重复累积")
+    }
+}
