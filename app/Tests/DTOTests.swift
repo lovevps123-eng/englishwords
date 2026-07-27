@@ -242,4 +242,18 @@ final class DTOTests: XCTestCase {
         XCTAssertEqual(tokens[1].display, "—")
         XCTAssertTrue(tokens[1].normalized.isEmpty, "纯标点 token 的 normalized 应为空串，调用方应跳过收藏")
     }
+
+    // 真实抓取文章（html.unescape 还原）里的撇号普遍是 Unicode 弯引号 U+2019，而不是 ASCII 直引号。
+    // 回归：弯引号版本的 "Don't" 应和直引号版本一样 normalize 成 "don't"，不能被误分词成 "dont"。
+    func testTokenizeArticleParagraphNormalizesCurlyApostropheToStraight() {
+        let tokens = tokenizeArticleParagraph("He said, \u{201C}Don\u{2019}t worry.\u{201D}")
+        let dontToken = tokens.first { $0.display.contains("Don") }
+        XCTAssertEqual(dontToken?.normalized, "don't")
+    }
+
+    func testTokenizeArticleParagraphNormalizesLeftCurlyApostropheToo() {
+        // U+2018（左单引号）理论上不该出现在撇号位置，但同样归一，避免遗漏。
+        let tokens = tokenizeArticleParagraph("rock \u{2018}n\u{2018} roll")
+        XCTAssertEqual(tokens[1].normalized, "'n'")
+    }
 }

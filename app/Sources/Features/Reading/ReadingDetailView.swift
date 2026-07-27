@@ -105,7 +105,12 @@ struct ReadingDetailView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            guard chinese != nil else { return }
+            guard chinese != nil else {
+                // 没有对应译文（contentCn 缺失，或中英文段落数不一致导致下标越界）：给个轻提示，
+                // 而不是静默无反应——否则用户会以为点按没生效。
+                showToast("本段暂无翻译")
+                return
+            }
             withAnimation {
                 if expandedParagraphs.contains(index) {
                     expandedParagraphs.remove(index)

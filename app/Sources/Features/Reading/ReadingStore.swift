@@ -61,11 +61,22 @@ struct ArticleWordToken: Identifiable, Hashable {
     let normalized: String
 }
 
+/// 真实抓取文章经 html.unescape 还原后普遍使用 Unicode 弯引号（左单引号 U+2018、右单引号 U+2019），
+/// 而不是 ASCII 直引号——"don't" 里的撇号实际是 U+2019。normalize 前先把这两个弯单引号统一映射成
+/// 直引号 "'"，否则 filter 只认 ASCII "'"，会把 "don't" 分词成 "dont"，导致词典查询误 404。
+/// 弯双引号（U+201C/U+201D）本身不该出现在 normalized 里，不需要映射——filter 的 isLetter/'/- 判断
+/// 已经会把它们当标点丢弃。
+private func normalizingCurlyQuotes(_ s: String) -> String {
+    s.replacingOccurrences(of: "\u{2018}", with: "'")
+        .replacingOccurrences(of: "\u{2019}", with: "'")
+}
+
 /// 英文段落按空白切词，供阅读详情页渲染可点词 token（TappableParagraph 消费）。
 func tokenizeArticleParagraph(_ text: String) -> [ArticleWordToken] {
     let rawTokens = text.split(whereSeparator: { $0.isWhitespace })
     return rawTokens.enumerated().map { index, token in
-        let normalized = token.lowercased().filter { $0.isLetter || $0 == "'" || $0 == "-" }
+        let lowercasedQuoteNormalized = normalizingCurlyQuotes(token.lowercased())
+        let normalized = lowercasedQuoteNormalized.filter { $0.isLetter || $0 == "'" || $0 == "-" }
         return ArticleWordToken(id: index, display: String(token), normalized: normalized)
     }
 }
