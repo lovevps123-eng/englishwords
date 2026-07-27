@@ -61,4 +61,14 @@ final class Recognizer: ObservableObject {
         task?.cancel()
         isRecording = false
     }
+
+    /// 清空上一次识别结果与错误提示（不影响 isRecording/录音硬件状态）。
+    /// start() 本身在开始新录音时已经会清空 transcript，这里单独暴露出来是给
+    /// "换到下一句但还没重新录音"这种场景用：SpeakingView 换目标句时若不调用，
+    /// 上一句残留的 transcript 会继续和新目标句拼出误导性的红绿高亮/得分，
+    /// 直到用户重新点"开始跟读"才会自愈（见 task-7-report.md 修复记录）。
+    func reset() {
+        transcript = ""
+        errorMessage = nil
+    }
 }

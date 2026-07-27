@@ -71,6 +71,9 @@ struct SpeakingView: View {
 
             Button("下一句") {
                 recognizer.stop()
+                // 必须清空上一句的识别文本：否则新目标句会和上一句的 transcript 拼出
+                // 误导性的红绿高亮/得分，直到用户重新点"开始跟读"才会自愈。
+                recognizer.reset()
                 store.advance(sentenceCount: sentences.count)
             }
             .buttonStyle(.bordered)
