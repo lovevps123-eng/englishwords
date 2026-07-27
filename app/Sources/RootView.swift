@@ -11,7 +11,7 @@ struct RootView: View {
             VocabView()
                 .tabItem { Label("单词", systemImage: "rectangle.stack") }
 
-            PlaceholderView(text: "跟读页面，敬请期待")
+            SpeakingView()
                 .tabItem { Label("跟读", systemImage: "mic") }
 
             ReadingListView()
@@ -19,19 +19,6 @@ struct RootView: View {
 
             SettingsView()
                 .tabItem { Label("我的", systemImage: "person") }
-        }
-    }
-}
-
-/// 占位页：仅显示一段中文说明文字
-private struct PlaceholderView: View {
-    let text: String
-
-    var body: some View {
-        VStack {
-            Text(text)
-                .font(.title2)
-                .foregroundStyle(.secondary)
         }
     }
 }
