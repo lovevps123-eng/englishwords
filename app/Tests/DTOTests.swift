@@ -251,9 +251,35 @@ final class DTOTests: XCTestCase {
         XCTAssertEqual(dontToken?.normalized, "don't")
     }
 
-    func testTokenizeArticleParagraphNormalizesLeftCurlyApostropheToo() {
-        // U+2018（左单引号）理论上不该出现在撇号位置，但同样归一，避免遗漏。
+    // 取舍记录（复审第二轮）：'n' 两侧的引号都落在唯一字母 "n" 之外，按"整词被引号包裹应剥离
+    // 定界符"规则（与 'historic' 是同一模式）会被当定界符丢弃，normalized 是 "n" 而非 "'n'"。
+    // 与"整词引述"场景（更常见、优先级更高）共用同一条规则，此处不再断言保留两侧撇号。
+    func testTokenizeArticleParagraphStripsQuoteDelimitersAroundSingleLetterToken() {
         let tokens = tokenizeArticleParagraph("rock \u{2018}n\u{2018} roll")
-        XCTAssertEqual(tokens[1].normalized, "'n'")
+        XCTAssertEqual(tokens[1].normalized, "n")
+    }
+
+    // 回归（复审第二轮）：整词被弯单引号包裹的引述写法（英式媒体常见，如 called 'historic'）之前会被
+    // "无差别把弯引号换成直引号再塞进白名单" 误留成 "'historic'"，导致词典精确匹配落空、误报 404。
+    // 首尾引号（不管直/弯）应被当定界符剥离，只留 "historic"。
+    func testTokenizeArticleParagraphStripsWrappingCurlyQuotesAroundWholeWord() {
+        let tokens = tokenizeArticleParagraph("The deal was called \u{2018}historic\u{2019}.")
+        let quotedToken = tokens.first { $0.display.contains("historic") }
+        XCTAssertEqual(quotedToken?.normalized, "historic")
+    }
+
+    // 同一场景的直引号版本，确保直引号包裹同样被当定界符剥离（不只是弯引号）。
+    func testTokenizeArticleParagraphStripsWrappingStraightQuotesAroundWholeWord() {
+        let tokens = tokenizeArticleParagraph("The deal was called 'historic'.")
+        let quotedToken = tokens.first { $0.display.contains("historic") }
+        XCTAssertEqual(quotedToken?.normalized, "historic")
+    }
+
+    // 回归防重：don't 场景（词内弯撇号）必须在①②两步拆分后依然保持正确，不能因为"先剥离首尾引号"
+    // 的改动而回退。
+    func testTokenizeArticleParagraphStillNormalizesCurlyApostropheInsideWordAfterQuoteStrippingFix() {
+        let tokens = tokenizeArticleParagraph("\u{201C}Don\u{2019}t worry.\u{201D}")
+        let dontToken = tokens.first { $0.display.contains("Don") }
+        XCTAssertEqual(dontToken?.normalized, "don't")
     }
 }

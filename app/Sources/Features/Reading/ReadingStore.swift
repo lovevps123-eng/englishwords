@@ -61,22 +61,48 @@ struct ArticleWordToken: Identifiable, Hashable {
     let normalized: String
 }
 
-/// 真实抓取文章经 html.unescape 还原后普遍使用 Unicode 弯引号（左单引号 U+2018、右单引号 U+2019），
-/// 而不是 ASCII 直引号——"don't" 里的撇号实际是 U+2019。normalize 前先把这两个弯单引号统一映射成
-/// 直引号 "'"，否则 filter 只认 ASCII "'"，会把 "don't" 分词成 "dont"，导致词典查询误 404。
-/// 弯双引号（U+201C/U+201D）本身不该出现在 normalized 里，不需要映射——filter 的 isLetter/'/- 判断
-/// 已经会把它们当标点丢弃。
-private func normalizingCurlyQuotes(_ s: String) -> String {
-    s.replacingOccurrences(of: "\u{2018}", with: "'")
-        .replacingOccurrences(of: "\u{2019}", with: "'")
+/// 引号类字符（直引号 + 弯引号，单/双）。用于区分"整词被引号包裹"（定界符，应剥离）与
+/// "词内撇号"（如 don't，应保留并归一为直引号）——单纯"把弯引号全部替换成直引号再塞进白名单"
+/// 会把 'historic'（英式媒体常见的引述写法）误留成 "'historic'"，见 task-6-report.md 记录的回归。
+private let quoteCharacters: Set<Character> = ["'", "\"", "\u{2018}", "\u{2019}", "\u{201C}", "\u{201D}"]
+private let straightApostropheQuoteCharacters: Set<Character> = ["'", "\u{2018}", "\u{2019}"]
+
+/// 单个 token 的 normalize 分两步：
+/// ① 先找到 token 里第一个字母与最后一个字母的位置，这个范围之外的所有引号/标点一律当定界符丢弃
+///    （不管是直引号还是弯引号）——解决"整词被引号包裹"场景，如 'historic'. → historic；
+/// ② 只对落在字母范围**内部**的单引号形态字符（直/弯）归一为直撇号并保留——解决"词内撇号"场景，
+///    如 Don't（弯撇号）→ don't。词内双引号极罕见，按噪声丢弃。
+/// 取舍：像 rock 'n' roll 里的 'n'，两侧引号都落在唯一字母 "n" 之外，会被①当定界符丢弃，
+/// normalized 结果是 "n" 而非 "'n'"——与"整词被引号包裹"是同一模式，两者用同一条规则，
+/// 优先保证"整词引述"场景正确（已在 task-6-report.md 说明这一取舍）。
+private func normalizeToken(_ token: Substring) -> String {
+    let chars = Array(token.lowercased())
+    guard let firstLetterIndex = chars.firstIndex(where: { $0.isLetter }),
+          let lastLetterIndex = chars.lastIndex(where: { $0.isLetter }) else {
+        return ""
+    }
+
+    var result = ""
+    for i in chars.indices {
+        guard i >= firstLetterIndex, i <= lastLetterIndex else { continue }
+        let c = chars[i]
+        if quoteCharacters.contains(c) {
+            if straightApostropheQuoteCharacters.contains(c) {
+                result.append("'")
+            }
+            continue
+        }
+        if c.isLetter || c == "-" {
+            result.append(c)
+        }
+    }
+    return result
 }
 
 /// 英文段落按空白切词，供阅读详情页渲染可点词 token（TappableParagraph 消费）。
 func tokenizeArticleParagraph(_ text: String) -> [ArticleWordToken] {
     let rawTokens = text.split(whereSeparator: { $0.isWhitespace })
     return rawTokens.enumerated().map { index, token in
-        let lowercasedQuoteNormalized = normalizingCurlyQuotes(token.lowercased())
-        let normalized = lowercasedQuoteNormalized.filter { $0.isLetter || $0 == "'" || $0 == "-" }
-        return ArticleWordToken(id: index, display: String(token), normalized: normalized)
+        ArticleWordToken(id: index, display: String(token), normalized: normalizeToken(token))
     }
 }
