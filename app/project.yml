@@ -12,6 +12,7 @@ targets:
     info:
       path: Info.plist
       properties:
+        CFBundleDisplayName: Love English
         NSMicrophoneUsageDescription: 录音用于跟读发音评分
         NSSpeechRecognitionUsageDescription: 本地识别你的跟读发音
         NSAppTransportSecurity:

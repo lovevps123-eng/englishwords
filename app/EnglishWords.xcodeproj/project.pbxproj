@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A00E2199EB33218A8A74AFD /* SmokeAuto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB3318E342045A2006195CC /* SmokeAuto.swift */; };
 		128C6204F5E147AD777F98BE /* SpeakingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F45F60936D7C73A30999005 /* SpeakingStore.swift */; };
 		197DA9CCC0EA22C472200EAC /* ReadingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680B345FBE280BD1BA2458E9 /* ReadingListView.swift */; };
 		23B03CBB81B52268FF1F060E /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */; };
@@ -51,6 +52,7 @@
 		10E185D3E84355D37A51A67F /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
 		18E43F499BE06780638E49AB /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		1AD211B88A972F69B247B1B4 /* WordDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiff.swift; sourceTree = "<group>"; };
+		1CB3318E342045A2006195CC /* SmokeAuto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeAuto.swift; sourceTree = "<group>"; };
 		24A888ED7597C6ACCC88FE16 /* EnglishWordsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EnglishWordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		4AF5A66EB4E4166293AEEEF0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 				2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */,
 				62A6812FB507026EBBB581E8 /* DTO.swift */,
 				982EC216281476DED6532A3E /* KeychainStore.swift */,
+				1CB3318E342045A2006195CC /* SmokeAuto.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -301,6 +304,7 @@
 				CDD9B5AD5BCD36F835543F99 /* ScoringStrategy.swift in Sources */,
 				AE4BDB8A89A5DC014217F4F2 /* SettingsStore.swift in Sources */,
 				4825E6ADAEF8DDA398C451E4 /* SettingsView.swift in Sources */,
+				0A00E2199EB33218A8A74AFD /* SmokeAuto.swift in Sources */,
 				128C6204F5E147AD777F98BE /* SpeakingStore.swift in Sources */,
 				F2CBFC7C6CD8E2DE9FB3217A /* SpeakingView.swift in Sources */,
 				3F1638C336982977D7630D6D /* TodayView.swift in Sources */,

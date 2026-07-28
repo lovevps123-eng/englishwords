@@ -35,8 +35,21 @@ struct EnglishWordsApp: App {
             .environment(vocabStore)
             .environment(settingsStore)
             .environment(readingStore)
+            .task {
+                await performStartupSyncIfNeeded()
+            }
         }
         .modelContainer(modelContainer)
+    }
+
+    /// App 启动时若已是登录态，后台补交一次未同步的答题结果并刷新今日队列，让缓存尽量新鲜；
+    /// 不阻塞首帧渲染（.task 与视图渲染并发），失败静默——离线可用是本 App 的设计目标
+    /// （见 docs/specs/2026-07-25-english-app-refocus-design.md「错误处理」，VocabStore 同一取舍）。
+    /// 未登录时不触发：这种情况下 sync/refreshQueue 请求会因缺 token 直接 401，没有意义。
+    private func performStartupSyncIfNeeded() async {
+        guard authStore.isAuthenticated else { return }
+        await vocabStore.sync()
+        try? await vocabStore.refreshQueue(tier: settingsStore.tier, newLimit: settingsStore.dailyNewLimit)
     }
 }
 

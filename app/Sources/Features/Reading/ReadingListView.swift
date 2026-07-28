@@ -27,9 +27,10 @@ struct ReadingListView: View {
     @State private var articles: [ArticleSummary] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 Picker("难度", selection: $filter) {
                     ForEach(DifficultyFilter.allCases) { option in
@@ -49,6 +50,15 @@ struct ReadingListView: View {
             .onChange(of: filter) { _, _ in
                 Task { await load() }
             }
+            #if DEBUG
+            // 冒烟自动化：RootView 编排器切到本 Tab 并等列表加载完后广播这个通知，
+            // 这里直接 push 第一篇文章，模拟"点列表进详情"，供截图脚本拍 06-reading-detail。
+            .onReceive(NotificationCenter.default.publisher(for: .smokeOpenFirstArticle)) { _ in
+                if let first = articles.first {
+                    path.append(first)
+                }
+            }
+            #endif
         }
     }
 
