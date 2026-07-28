@@ -66,6 +66,13 @@ struct SettingsView: View {
                 "确定要登出吗？", isPresented: $showLogoutConfirm, titleVisibility: .visible
             ) {
                 Button("登出", role: .destructive) {
+                    // 主动登出：换账号场景，必须先清本地词库缓存 + 待同步队列 + 打卡状态，
+                    // 否则新账号会看到旧账号的缓存词（VocabView.loadIfNeeded 因非空跳过拉取），
+                    // 更严重的是旧账号未同步的 PendingResult 会用新账号的 token 提交，
+                    // 污染新账号的服务端 SRS 数据（不可逆）。区别于 401 强制登出（同账号 token
+                    // 过期），那条路径不清数据，见 VocabStore.clearAllLocalData() 注释。
+                    vocabStore.clearAllLocalData()
+                    clearAllCheckinState()
                     authStore.logout()
                 }
                 Button("取消", role: .cancel) {}
@@ -101,6 +108,15 @@ struct SettingsView: View {
                 serverURLHint = "已保存，重启 App 后生效"
             }
         )
+    }
+
+    /// 按前缀 "checkin." 遍历删除 TodayView 的跟读/阅读打卡 UserDefaults key（各日期各一条）。
+    private func clearAllCheckinState() {
+        let defaults = UserDefaults.standard
+        let keysToRemove = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix("checkin.") }
+        for key in keysToRemove {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     private func refreshQueueAfterSettingsChange() async {

@@ -185,4 +185,24 @@ final class VocabStoreTests: XCTestCase {
         let pending = try context.fetch(FetchDescriptor<PendingResult>())
         XCTAssertEqual(pending.count, 1, "refreshQueue 不应产生第二条 pending")
     }
+
+    // ⑤ clearAllLocalData：主动登出路径应清空 CachedWord 与 PendingResult 两张表，
+    // 防止换账号后新账号看到旧账号缓存词，或旧账号未同步结果被用新账号 token 提交。
+    func testClearAllLocalDataEmptiesCachedWordsAndPendingResults() throws {
+        let store = VocabStore(modelContext: context, apiClient: apiClient)
+        let word = CachedWord(
+            serverId: "w1", word: "apple", phonetic: nil,
+            definitionsJSON: "[]", examplesJSON: "[]", stage: 0, group: "new"
+        )
+        context.insert(word)
+        store.submit(feedback: .know, for: word)
+
+        XCTAssertEqual(try context.fetch(FetchDescriptor<CachedWord>()).count, 1)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingResult>()).count, 1)
+
+        store.clearAllLocalData()
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<CachedWord>()).isEmpty, "clearAllLocalData 后 CachedWord 应全空")
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingResult>()).isEmpty, "clearAllLocalData 后 PendingResult 应全空")
+    }
 }

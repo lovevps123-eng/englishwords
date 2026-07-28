@@ -84,6 +84,25 @@ final class VocabStore {
         }
     }
 
+    /// 清空全部本地词库缓存与待同步队列（CachedWord + PendingResult）。
+    ///
+    /// 仅应在**用户主动登出**路径调用（SettingsView 登出确认回调），而不是 401 强制登出
+    /// （authDidLogout 通知）路径：401 只是同一账号的 token 过期，未同步的 PendingResult
+    /// 要留着，等用户重新登录后 sync() 补交；但如果换了账号（主动登出后另一人登录），
+    /// A 账号的 PendingResult 会带着 B 账号的新 token 提交，污染 B 的服务端 SRS 数据——
+    /// 这是不可逆操作，所以主动登出必须在 authStore.logout() 之前把两张表清空。
+    func clearAllLocalData() {
+        let words = (try? modelContext.fetch(FetchDescriptor<CachedWord>())) ?? []
+        for word in words {
+            modelContext.delete(word)
+        }
+        let pending = (try? modelContext.fetch(FetchDescriptor<PendingResult>())) ?? []
+        for item in pending {
+            modelContext.delete(item)
+        }
+        try? modelContext.save()
+    }
+
     /// 今日进度 = 当前缓存队列（refreshQueue 覆盖式写入，天然对应"今日"队列）中已作答 / 总数
     var todayProgress: (done: Int, total: Int) {
         let all = (try? modelContext.fetch(FetchDescriptor<CachedWord>())) ?? []
