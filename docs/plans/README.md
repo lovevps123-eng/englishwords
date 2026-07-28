@@ -9,7 +9,7 @@
 | 1 | [iOS 语音识别 Spike](2026-07-25-ios-speech-spike.md) — SFSpeechRecognizer 中式口音真机验证 | englishwords | **Xcode 工程已生成并通过模拟器运行验证，待用户真机执行 Task 3** | 无 |
 | 2 | [后端词汇模块](2026-07-25-backend-vocab-module.md) — 队列/SRS/幂等提交/统计/例句富化 | senior-platform | **✅ 完成并已上生产（2026-07-26，例句 3677 词全量富化）** | — |
 | 3 | 后端听力模块 — listening_sets/题目生成/判分 | senior-platform | 待写计划 | #2 落地后 |
-| 4 | iOS App v1 — 五 Tab 完整应用 | englishwords | 待写计划 | #1 结论 + #2 API 可用 |
+| 4 | [iOS App v1](2026-07-26-ios-app-v1.md) — Love English 五 Tab 应用 | englishwords | **✅ 完成（2026-07-29 终审 READY-TO-SHIP，生产冒烟通过，38 测试绿）** | 跟读评分策略待 #1 结论 |
 
 **现状勘察结论（影响计划的重要事实）：**
 - 生产库 `dictionary_entries` 已有 13,644 词（ECDICT 导入，其中高考标签 3,677 词），`import_ecdict.py`、`enrich_dictionary.py`（Free Dictionary API 补英文释义/音频）已存在 → 计划 2 只补缺口：系统背词进度表、每日队列、幂等提交、例句富化。
