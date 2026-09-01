@@ -49,7 +49,7 @@ private struct ErrorDetail: Decodable {
 final class APIClient {
     static let shared = APIClient()
 
-    /// 后端 login 接口凭此值豁免 Turnstile 校验；仅供本 App 自用，不对外公开。
+    /// 此值可从 App bundle 中提取，仅用于登录的 Turnstile 兼容标记；不是秘密，也不是授权凭据。
     private let appClientKey: String
 
     private let session: URLSession

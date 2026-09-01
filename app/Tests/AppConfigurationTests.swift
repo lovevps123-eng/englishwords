@@ -32,14 +32,41 @@ final class AppConfigurationTests: XCTestCase {
 
     func testDebugNormalizesRepeatedRootSlashesToNoPath() throws {
         let subject = AppConfiguration(defaults: defaults, environment: .debug)
-        try subject.applyServerOverride("https://staging.example.com///")
-        XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
+        for value in [
+            "https://staging.example.com",
+            "https://staging.example.com/",
+            "https://staging.example.com///",
+        ] {
+            try subject.applyServerOverride(value)
+            XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
+        }
     }
 
-    func testDebugPreservesNonRootPathWhileRemovingTrailingSlashes() throws {
+    func testDebugRejectsNonRootPathsWithPathNotAllowedError() throws {
         let subject = AppConfiguration(defaults: defaults, environment: .debug)
-        try subject.applyServerOverride("https://staging.example.com/api///")
-        XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com/api")
+        for value in [
+            "https://staging.example.com/proxy",
+            "https://staging.example.com/proxy/",
+            "https://staging.example.com/api",
+        ] {
+            XCTAssertThrowsError(try subject.applyServerOverride(value)) { error in
+                XCTAssertEqual(error as? ConfigurationError, .pathNotAllowed)
+                XCTAssertEqual(error.localizedDescription, "服务器地址不能包含路径")
+            }
+        }
+    }
+
+    func testRejectedNonRootPathPreservesLastValidOverride() throws {
+        let subject = AppConfiguration(defaults: defaults, environment: .debug)
+        try subject.applyServerOverride("https://staging.example.com")
+
+        XCTAssertThrowsError(try subject.applyServerOverride("https://staging.example.com/proxy")) { error in
+            XCTAssertEqual(error as? ConfigurationError, .pathNotAllowed)
+            XCTAssertEqual(error.localizedDescription, "服务器地址不能包含路径")
+        }
+
+        XCTAssertEqual(subject.storedOverride, "https://staging.example.com")
+        XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
     }
 
     func testDebugAcceptsOnlyLocalHTTPHosts() throws {

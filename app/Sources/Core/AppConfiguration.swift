@@ -18,6 +18,7 @@ enum ConfigurationError: Error, LocalizedError, Equatable {
     case httpsRequired
     case credentialsNotAllowed
     case queryOrFragmentNotAllowed
+    case pathNotAllowed
 
     var errorDescription: String? {
         switch self {
@@ -25,6 +26,7 @@ enum ConfigurationError: Error, LocalizedError, Equatable {
         case .httpsRequired: "服务器必须使用 HTTPS（本机调试除外）"
         case .credentialsNotAllowed: "服务器地址不能包含用户名或密码"
         case .queryOrFragmentNotAllowed: "服务器地址不能包含查询参数或片段"
+        case .pathNotAllowed: "服务器地址不能包含路径"
         }
     }
 }
@@ -80,12 +82,10 @@ struct AppConfiguration {
 
         components.scheme = scheme
         components.host = host
-        if !components.path.isEmpty && components.path.allSatisfy({ $0 == "/" }) {
+        if components.path.isEmpty || components.path.allSatisfy({ $0 == "/" }) {
             components.path = ""
         } else {
-            while components.path.count > 1, components.path.hasSuffix("/") {
-                components.path.removeLast()
-            }
+            throw ConfigurationError.pathNotAllowed
         }
         guard let url = components.url else {
             throw ConfigurationError.invalidURL

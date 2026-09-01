@@ -85,6 +85,15 @@ final class APIClientSecurityTests: XCTestCase {
         XCTAssertEqual(RecordingURLProtocol.lastRequest?.url?.absoluteString, "https://api.example.com/api/vocab/queue")
     }
 
+    func testRootOverrideResolvesVocabQueueExactlyUnderConfiguredOrigin() async throws {
+        try AppConfiguration(defaults: defaults, environment: .debug)
+            .applyServerOverride("https://api.example.com///")
+
+        _ = try await client.request("/api/vocab/queue")
+
+        XCTAssertEqual(RecordingURLProtocol.lastRequest?.url?.absoluteString, "https://api.example.com/api/vocab/queue")
+    }
+
     func testAbsoluteURLIsRejected() async {
         await assertInvalidURL(for: "https://attacker.example/api/vocab/queue")
     }
