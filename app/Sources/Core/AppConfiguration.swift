@@ -80,7 +80,13 @@ struct AppConfiguration {
 
         components.scheme = scheme
         components.host = host
-        components.path = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if components.path == "/" {
+            components.path = ""
+        } else {
+            while components.path.count > 1, components.path.hasSuffix("/") {
+                components.path.removeLast()
+            }
+        }
         guard let url = components.url else {
             throw ConfigurationError.invalidURL
         }

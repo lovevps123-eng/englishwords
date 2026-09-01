@@ -15,6 +15,7 @@
 		3F1638C336982977D7630D6D /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0C20393A2344FBC638EF5B /* TodayView.swift */; };
 		4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */; };
 		4825E6ADAEF8DDA398C451E4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF5A66EB4E4166293AEEEF0 /* SettingsView.swift */; };
+		4E0177BB7C75C7DA7A8C266C /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */; };
 		52103612B9827B57E792D250 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */; };
 		5BBBC1DAA379B6BBF6B6CD7E /* WordDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B70E0CF838A014B6242558 /* WordDiffTests.swift */; };
 		6439D9F9DC5ACEDFDF553101 /* WordDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AD211B88A972F69B247B1B4 /* WordDiff.swift */; };
@@ -28,6 +29,7 @@
 		B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E185D3E84355D37A51A67F /* VocabStore.swift */; };
 		CDD9B5AD5BCD36F835543F99 /* ScoringStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57143F1E41243748D50A7808 /* ScoringStrategy.swift */; };
 		D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF528BB8E171A221EB4F079 /* VocabModels.swift */; };
+		D74DF868A697328CE44CE8C1 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E86F0A31339CB972805650F /* AppConfigurationTests.swift */; };
 		E1EADA5F68E108E07D02FB1B /* ReadingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 769181079DF5D4C6754AEE53 /* ReadingStore.swift */; };
 		E3947795C90805D928BE1745 /* Recognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B2A9C9CAEE9A321DAECAF5 /* Recognizer.swift */; };
 		E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */; };
@@ -49,6 +51,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		10E185D3E84355D37A51A67F /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
 		18E43F499BE06780638E49AB /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		1AD211B88A972F69B247B1B4 /* WordDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiff.swift; sourceTree = "<group>"; };
@@ -70,6 +73,7 @@
 		95B70E0CF838A014B6242558 /* WordDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiffTests.swift; sourceTree = "<group>"; };
 		96995F6C1A70BFC24A3EDE68 /* EnglishWords.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishWords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		982EC216281476DED6532A3E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		9E86F0A31339CB972805650F /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
 		A5B2A9C9CAEE9A321DAECAF5 /* Recognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recognizer.swift; sourceTree = "<group>"; };
 		A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStoreTests.swift; sourceTree = "<group>"; };
 		B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -135,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */,
+				018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */,
 				62A6812FB507026EBBB581E8 /* DTO.swift */,
 				982EC216281476DED6532A3E /* KeychainStore.swift */,
 				1CB3318E342045A2006195CC /* SmokeAuto.swift */,
@@ -188,6 +193,7 @@
 			isa = PBXGroup;
 			children = (
 				6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */,
+				9E86F0A31339CB972805650F /* AppConfigurationTests.swift */,
 				C92992ADCF557ED09396616C /* DTOTests.swift */,
 				A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */,
 				5D1C23D3C55A214D957A2982 /* SmokeTests.swift */,
@@ -291,6 +297,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				23B03CBB81B52268FF1F060E /* APIClient.swift in Sources */,
+				4E0177BB7C75C7DA7A8C266C /* AppConfiguration.swift in Sources */,
 				7D9E04B1A48FD020881114DB /* AuthStore.swift in Sources */,
 				F57FC3C7A89C631AFBD2F339 /* DTO.swift in Sources */,
 				E9B730A275BB257204690B79 /* EnglishWordsApp.swift in Sources */,
@@ -321,6 +328,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6CBECE7C9A9B84843EC38842 /* APIClientRefreshTests.swift in Sources */,
+				D74DF868A697328CE44CE8C1 /* AppConfigurationTests.swift in Sources */,
 				87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */,
 				4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */,
 				25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */,

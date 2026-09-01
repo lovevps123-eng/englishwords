@@ -30,6 +30,12 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
     }
 
+    func testDebugPreservesNonRootPathWhileRemovingTrailingSlashes() throws {
+        let subject = AppConfiguration(defaults: defaults, environment: .debug)
+        try subject.applyServerOverride("https://staging.example.com/api///")
+        XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com/api")
+    }
+
     func testDebugAcceptsOnlyLocalHTTPHosts() throws {
         let subject = AppConfiguration(defaults: defaults, environment: .debug)
         for value in ["http://localhost:8000", "http://127.0.0.1:8000", "http://[::1]:8000"] {
