@@ -65,22 +65,23 @@ xcrun altool --upload-app -f build/export/EnglishWords.ipa -t ios \
 之后在 App Store Connect 网页端把该构建加入 TestFlight 内部测试组，即可推送给测试设备——这一步
 （以及正式提交审核）留给用户本人在网页操作，不在本仓库自动化范围内。
 
-## 冒烟测试账号
+## 服务器与冒烟测试账号
 
-生产环境（默认 `http://202.182.116.2`，也是「我的」页服务器地址的默认值）已预置一个专供 App
-冒烟测试的账号，长期保留，不要在测试脚本外删除/改密码：
+Release 固定使用生产服务器 `https://senior.dafang-edu.com`，不会读取或应用本地服务器覆盖。
+只有 Debug 构建会在「我的」页公开经过校验的服务器设置；它接受 HTTPS 地址，HTTP 仅允许
+`localhost`、`127.0.0.1` 或 `[::1]`。Release 不提供服务器设置入口。
 
-- 手机号：`<removed-smoke-phone>`
-- 密码：`<removed-smoke-password>`
-- 状态：高三年级，已激活，可直接登录使用单词/阅读等全部功能
+生产环境预置了一个专供 App 冒烟测试的账号。该账号的标识和密码仅保存在私有仓库的受控配置中，
+不适合写入公开源码、测试脚本或文档；请向项目维护者取得授权的测试配置。`app/Tests/` 目录下的
+单元测试全部跑在内存态 SwiftData + 假 URLProtocol 上，不依赖这个账号。该账号仅用于获授权的人工
+或模拟器全流程冒烟（连接生产真实数据）。
 
-`app/Tests/` 目录下的单元测试全部跑在内存态 SwiftData + 假 URLProtocol 上，不依赖这个账号；
-这个账号仅用于人工或本文档描述的模拟器全流程冒烟（连生产真实数据）。
+登录请求中的 `X-App-Client` 仅是与 Turnstile 兼容的标记；它不是秘密，也不是授权凭据。
 
 ## 冒烟自动化（SMOKE_AUTO，仅 DEBUG 构建）
 
 `SMOKE_AUTO=1` 时（见 `Sources/Core/SmokeAuto.swift`，整个文件包在 `#if DEBUG`，Release 不含这段代码），
-App 会自动完成：填账号密码（默认即上面的冒烟账号，可用 `SMOKE_PHONE`/`SMOKE_PASSWORD` 覆盖）→ 提交登录
+App 会自动完成：填入获授权的私有冒烟测试配置（可用 `SMOKE_PHONE`/`SMOKE_PASSWORD` 提供）→ 提交登录
 → 依次切到 单词/阅读/我的 Tab → 背 3 词 → 打开第一篇文章详情。每完成一步会把步骤名写入 App 沙盒
 `Documents/smoke_marker.txt`，外部脚本轮询这个文件判断"数据/界面已就绪、可以截图"，而不是猜固定的
 睡眠时长（生产网络延迟不定）。

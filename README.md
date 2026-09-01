@@ -8,4 +8,4 @@
 
 ## 状态
 
-设计已确认，待实施计划（见设计文档）。
+v1 已完成，iOS 发布加固已完成。Release 固定连接 `https://senior.dafang-edu.com`（见设计文档）。
