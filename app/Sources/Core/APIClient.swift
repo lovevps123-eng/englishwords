@@ -12,6 +12,10 @@ enum APIError: Error, LocalizedError {
     case server(status: Int, message: String)
     case unauthorized
     case decoding(Error)
+    case networkUnavailable
+    case timeout
+    case secureConnectionFailed
+    case transport(Error)
 
     var errorDescription: String? {
         switch self {
@@ -25,6 +29,14 @@ enum APIError: Error, LocalizedError {
             return "登录已过期，请重新登录"
         case .decoding:
             return "数据解析失败"
+        case .networkUnavailable:
+            return "网络不可用，请检查网络后重试"
+        case .timeout:
+            return "服务器响应超时，请稍后重试"
+        case .secureConnectionFailed:
+            return "无法与服务器建立安全连接"
+        case .transport:
+            return "网络请求失败，请稍后重试"
         }
     }
 }
@@ -38,27 +50,39 @@ final class APIClient {
     static let shared = APIClient()
 
     /// 后端 login 接口凭此值豁免 Turnstile 校验；仅供本 App 自用，不对外公开。
-    private let appClientKey = "3da352b803d086be8ba6d1cc7bb400829a3acb322476df5f"
+    private let appClientKey: String
 
     private let session: URLSession
     private let keychain: KeychainStore
+    private let configuration: AppConfiguration
 
     /// 401 → refresh 的 single-flight 去重：并发请求共享同一个 in-flight refresh task 的结果，
     /// 避免各自触发 /api/auth/refresh。用锁保护，因为 APIClient 不是 actor，可能被多线程并发调用。
     private let refreshLock = NSLock()
     private var refreshTask: Task<Bool, Never>?
 
-    init(session: URLSession = .shared, keychain: KeychainStore = .shared) {
-        self.session = session
+    init(
+        session: URLSession? = nil,
+        keychain: KeychainStore = .shared,
+        configuration: AppConfiguration = AppConfiguration(),
+        appClientKey: String = "3da352b803d086be8ba6d1cc7bb400829a3acb322476df5f"
+    ) {
+        self.session = session ?? Self.makeDefaultSession()
         self.keychain = keychain
+        self.configuration = configuration
+        self.appClientKey = appClientKey
     }
 
-    /// base URL：从 UserDefaults "serverBaseURL" 读取（设置页 Task 5 才提供写入 UI），
-    /// 未设置时回退到生产默认地址。
+    static func makeDefaultSession() -> URLSession {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        return URLSession(configuration: configuration)
+    }
+
+    /// base URL 由 AppConfiguration 统一解析，Debug override 生效时立即使用。
     var baseURL: URL {
-        let stored = UserDefaults.standard.string(forKey: "serverBaseURL")
-        let candidate = (stored?.isEmpty == false) ? stored! : "http://202.182.116.2"
-        return URL(string: candidate) ?? URL(string: "http://202.182.116.2")!
+        configuration.baseURL
     }
 
     /// 通用请求：自动附 Authorization: Bearer；401 时用 refresh token 重试一次，
@@ -89,12 +113,14 @@ final class APIClient {
     private func performRequest(
         path: String, method: String, body: Data?, authorized: Bool, allowRefresh: Bool
     ) async throws -> Data {
-        guard let url = URL(string: path, relativeTo: baseURL) else { throw APIError.invalidURL }
+        guard let endpoint = makeEndpoint(for: path) else { throw APIError.invalidURL }
 
-        var urlRequest = URLRequest(url: url)
+        var urlRequest = URLRequest(url: endpoint.url)
         urlRequest.httpMethod = method
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue(appClientKey, forHTTPHeaderField: "X-App-Client")
+        if endpoint.normalizedPath == "/api/auth/login" {
+            urlRequest.setValue(appClientKey, forHTTPHeaderField: "X-App-Client")
+        }
         if let body {
             urlRequest.httpBody = body
         }
@@ -107,7 +133,7 @@ final class APIClient {
         do {
             (data, response) = try await session.data(for: urlRequest)
         } catch {
-            throw error
+            throw mapTransportError(error)
         }
 
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
@@ -179,6 +205,89 @@ final class APIClient {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             throw APIError.decoding(error)
+        }
+    }
+
+    private func makeEndpoint(for rawPath: String) -> (url: URL, normalizedPath: String)? {
+        guard rawPath.hasPrefix("/"), var components = URLComponents(string: rawPath),
+              components.scheme == nil, components.host == nil,
+              components.user == nil, components.password == nil else {
+            return nil
+        }
+
+        let rawPercentEncodedPath = components.percentEncodedPath
+        guard isAPIPath(rawPercentEncodedPath),
+              let normalizedPath = normalizeAPIPath(rawPercentEncodedPath),
+              isAPIPath(normalizedPath) else {
+            return nil
+        }
+        components.percentEncodedPath = normalizedPath
+
+        guard let relativeURL = components.url,
+              let resolvedURL = URL(string: relativeURL.relativeString, relativeTo: baseURL)?.absoluteURL,
+              hasSameOrigin(resolvedURL, as: baseURL) else {
+            return nil
+        }
+
+        return (resolvedURL, normalizedPath)
+    }
+
+    private func isAPIPath(_ path: String) -> Bool {
+        path == "/api" || path.hasPrefix("/api/")
+    }
+
+    private func normalizeAPIPath(_ percentEncodedPath: String) -> String? {
+        var normalizedSegments: [String] = []
+        for segment in percentEncodedPath.split(separator: "/", omittingEmptySubsequences: true) {
+            let encodedSegment = String(segment)
+            let decodedSegment = encodedSegment.removingPercentEncoding ?? encodedSegment
+            switch decodedSegment {
+            case ".":
+                continue
+            case "..":
+                guard !normalizedSegments.isEmpty else { return nil }
+                normalizedSegments.removeLast()
+            default:
+                guard !decodedSegment.contains("/") && !decodedSegment.contains("\\") else { return nil }
+                normalizedSegments.append(encodedSegment)
+            }
+        }
+        return "/" + normalizedSegments.joined(separator: "/")
+    }
+
+    private func hasSameOrigin(_ url: URL, as baseURL: URL) -> Bool {
+        url.scheme?.lowercased() == baseURL.scheme?.lowercased()
+            && url.host?.lowercased() == baseURL.host?.lowercased()
+            && url.port == baseURL.port
+    }
+
+    private func mapTransportError(_ error: Error) -> APIError {
+        let urlError: URLError?
+        if let error = error as? URLError {
+            urlError = error
+        } else {
+            let nsError = error as NSError
+            urlError = nsError.domain == NSURLErrorDomain
+                ? URLError(URLError.Code(rawValue: nsError.code))
+                : nil
+        }
+
+        switch urlError?.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+            return .networkUnavailable
+        case .timedOut:
+            return .timeout
+        case .secureConnectionFailed,
+             .serverCertificateHasBadDate,
+             .serverCertificateUntrusted,
+             .serverCertificateHasUnknownRoot,
+             .serverCertificateNotYetValid,
+             .clientCertificateRejected,
+             .clientCertificateRequired,
+             .appTransportSecurityRequiresSecureConnection:
+            return .secureConnectionFailed
+        default:
+            return .transport(error)
         }
     }
 }

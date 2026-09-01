@@ -8,15 +8,22 @@ import XCTest
 final class RefreshCountingURLProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var _refreshCallCount = 0
+    private static var _refreshAppClientHeader: String?
 
     static var refreshCallCount: Int {
         lock.lock(); defer { lock.unlock() }
         return _refreshCallCount
     }
 
+    static var refreshAppClientHeader: String? {
+        lock.lock(); defer { lock.unlock() }
+        return _refreshAppClientHeader
+    }
+
     static func reset() {
         lock.lock(); defer { lock.unlock() }
         _refreshCallCount = 0
+        _refreshAppClientHeader = nil
     }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -28,6 +35,7 @@ final class RefreshCountingURLProtocol: URLProtocol {
         if path == "/api/auth/refresh" {
             RefreshCountingURLProtocol.lock.lock()
             RefreshCountingURLProtocol._refreshCallCount += 1
+            RefreshCountingURLProtocol._refreshAppClientHeader = request.value(forHTTPHeaderField: "X-App-Client")
             RefreshCountingURLProtocol.lock.unlock()
 
             // 放大竞态窗口：让两个并发调用者都有机会各自看到 401 并尝试发起 refresh。
@@ -77,7 +85,12 @@ final class APIClientRefreshTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [RefreshCountingURLProtocol.self]
         let session = URLSession(configuration: config)
-        let client = APIClient(session: session, keychain: .shared)
+        let suiteName = "APIClientRefreshTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.set("https://api.example.com", forKey: AppConfiguration.serverOverrideKey)
+        let appConfiguration = AppConfiguration(defaults: defaults, environment: .debug)
+        let client = APIClient(session: session, keychain: .shared, configuration: appConfiguration)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
 
         async let first: Data? = try? client.request("/api/study/queue")
         async let second: Data? = try? client.request("/api/word/list")
@@ -88,5 +101,6 @@ final class APIClientRefreshTests: XCTestCase {
         // 三路并发 401 都应最终通过（用新 token 重试成功），但只应有一次真正的 refresh 网络调用。
         XCTAssertTrue(results.allSatisfy { $0 != nil })
         XCTAssertEqual(RefreshCountingURLProtocol.refreshCallCount, 1)
+        XCTAssertNil(RefreshCountingURLProtocol.refreshAppClientHeader)
     }
 }
