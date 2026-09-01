@@ -10,8 +10,12 @@ struct SettingsView: View {
     @Environment(VocabStore.self) private var vocabStore
 
     @State private var showLogoutConfirm = false
-    @State private var serverURLHint: String?
     @State private var queueRefreshErrorMessage: String?
+#if DEBUG
+    @State private var serverURLDraft = ""
+    @State private var serverURLApplied = false
+    @State private var serverURLErrorMessage: String?
+#endif
 
     var body: some View {
         NavigationStack {
@@ -40,20 +44,42 @@ struct SettingsView: View {
                     Text("学习设置")
                 }
 
+                #if DEBUG
                 Section {
-                    TextField("服务器地址", text: serverBaseURLBinding)
+                    TextField("服务器地址", text: $serverURLDraft)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    if let serverURLHint {
-                        Text(serverURLHint)
+                    Button("应用") {
+                        applyServerURLDraft()
+                    }
+
+                    Button("恢复生产服务器") {
+                        settings.resetServerBaseURL()
+                        serverURLDraft = ""
+                        serverURLApplied = false
+                        serverURLErrorMessage = nil
+                    }
+
+                    if serverURLApplied {
+                        Text("已应用，后续请求立即生效")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.green)
+                    }
+
+                    if let serverURLErrorMessage {
+                        Text(serverURLErrorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
                     }
                 } header: {
                     Text("服务器")
                 }
+                .onAppear {
+                    serverURLDraft = settings.serverBaseURL
+                }
+                #endif
 
                 Section {
                     Button("登出", role: .destructive) {
@@ -100,15 +126,18 @@ struct SettingsView: View {
         )
     }
 
-    private var serverBaseURLBinding: Binding<String> {
-        Binding(
-            get: { settings.serverBaseURL },
-            set: { newValue in
-                settings.serverBaseURL = newValue
-                serverURLHint = "已保存，重启 App 后生效"
-            }
-        )
+#if DEBUG
+    private func applyServerURLDraft() {
+        do {
+            try settings.applyServerBaseURL(serverURLDraft)
+            serverURLApplied = true
+            serverURLErrorMessage = nil
+        } catch {
+            serverURLApplied = false
+            serverURLErrorMessage = error.localizedDescription
+        }
     }
+#endif
 
     /// 按前缀 "checkin." 遍历删除 TodayView 的跟读/阅读打卡 UserDefaults key（各日期各一条）。
     private func clearAllCheckinState() {

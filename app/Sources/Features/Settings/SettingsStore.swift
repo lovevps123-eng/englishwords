@@ -1,6 +1,4 @@
-// SettingsStore.swift — 设置持久化：难度档/每日新词量/服务器地址，单一来源存 UserDefaults。
-// APIClient.baseURL 已直接从 "serverBaseURL" 读取；本 store 只是给 SwiftUI 提供响应式读写，
-// 键名与 APIClient/VocabStore 约定一致，不引入第二套存储。
+// SettingsStore.swift — 设置持久化：难度档/每日新词量/服务器地址。
 import Foundation
 
 @Observable
@@ -15,6 +13,7 @@ final class SettingsStore {
     static let dailyNewLimitDefault = 50
 
     private let defaults: UserDefaults
+    private let configuration: AppConfiguration
 
     /// 难度档：1 基础 / 2 拔高。
     var tier: Int {
@@ -28,11 +27,12 @@ final class SettingsStore {
 
     /// 服务器地址；空字符串表示未设置，APIClient 会回退到生产默认地址。
     var serverBaseURL: String {
-        didSet { defaults.set(serverBaseURL, forKey: Keys.serverBaseURL) }
+        configuration.storedOverride ?? ""
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, configuration: AppConfiguration? = nil) {
         self.defaults = defaults
+        self.configuration = configuration ?? AppConfiguration(defaults: defaults)
 
         // UserDefaults.integer(forKey:) 未设置时返回 0，而 0 不是合法的 tier/dailyNewLimit 值，
         // 故用 0 作哨兵值映射回各自默认值。
@@ -42,6 +42,13 @@ final class SettingsStore {
         let storedLimit = defaults.integer(forKey: Keys.dailyNewLimit)
         self.dailyNewLimit = storedLimit == 0 ? Self.dailyNewLimitDefault : storedLimit
 
-        self.serverBaseURL = defaults.string(forKey: Keys.serverBaseURL) ?? ""
+    }
+
+    func applyServerBaseURL(_ rawValue: String) throws {
+        try configuration.applyServerOverride(rawValue)
+    }
+
+    func resetServerBaseURL() {
+        configuration.resetServerOverride()
     }
 }
