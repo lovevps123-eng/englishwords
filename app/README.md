@@ -80,8 +80,8 @@ Release 固定使用生产服务器 `https://senior.dafang-edu.com`，不会读�
 
 ## 冒烟自动化（SMOKE_AUTO，仅 DEBUG 构建）
 
-`SMOKE_AUTO=1` 时（见 `Sources/Core/SmokeAuto.swift`，整个文件包在 `#if DEBUG`，Release 不含这段代码），
-App 会自动完成：填入获授权的私有冒烟测试配置（可用 `SMOKE_PHONE`/`SMOKE_PASSWORD` 提供）→ 提交登录
+同时提供 `SMOKE_AUTO=1`、`SMOKE_PHONE` 和 `SMOKE_PASSWORD` 时（见 `Sources/Core/SmokeAuto.swift`，
+整个文件包在 `#if DEBUG`，Release 不含这段代码），App 会自动完成：填入获授权的私有冒烟测试配置 → 提交登录
 → 依次切到 单词/阅读/我的 Tab → 背 3 词 → 打开第一篇文章详情。每完成一步会把步骤名写入 App 沙盒
 `Documents/smoke_marker.txt`，外部脚本轮询这个文件判断"数据/界面已就绪、可以截图"，而不是猜固定的
 睡眠时长（生产网络延迟不定）。
@@ -93,7 +93,10 @@ UDID=<simulator udid>
 xcrun simctl uninstall $UDID com.masf.englishwords   # 清掉旧 Keychain token，保证从登录页开始
 xcrun simctl keychain $UDID reset                    # 模拟器 Keychain 在重装后可能仍保留旧 token，需显式 reset
 xcrun simctl install $UDID <path-to>/EnglishWords.app
-SIMCTL_CHILD_SMOKE_AUTO=1 xcrun simctl launch $UDID com.masf.englishwords
+SIMCTL_CHILD_SMOKE_AUTO=1 \
+SIMCTL_CHILD_SMOKE_PHONE='<authorized-smoke-phone>' \
+SIMCTL_CHILD_SMOKE_PASSWORD='<authorized-smoke-password>' \
+xcrun simctl launch $UDID com.masf.englishwords
 # 轮询 $(xcrun simctl get_app_container $UDID com.masf.englishwords data)/Documents/smoke_marker.txt
 # 依次出现 login_filled/today_ready/vocab_unanswered/vocab_answered/
 # reading_list_ready/reading_detail_ready/settings_ready 时各截一张图

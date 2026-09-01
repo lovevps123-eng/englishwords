@@ -71,11 +71,11 @@ struct LoginView: View {
 
     #if DEBUG
     /// 冒烟自动化：自动填账号密码（先留一小段时间给截图脚本拍"登录页已填"），再自动提交登录。
-    /// 仅 SMOKE_AUTO=1 时触发，正常使用不受影响。
+    /// 仅在运行环境显式提供完整冒烟凭据时触发，正常使用不受影响。
     private func runSmokeAutoIfNeeded() async {
-        guard SmokeAuto.isEnabled else { return }
-        phone = SmokeAuto.phone
-        password = SmokeAuto.password
+        guard let credentials = SmokeAuto.credentials else { return }
+        phone = credentials.phone
+        password = credentials.password
         try? await Task.sleep(nanoseconds: 500_000_000)
         SmokeAuto.writeMarker("login_filled")
         try? await Task.sleep(nanoseconds: 2_000_000_000)

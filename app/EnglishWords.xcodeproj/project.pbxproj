@@ -19,6 +19,7 @@
 		4E0177BB7C75C7DA7A8C266C /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */; };
 		4F55C4FF2328E7C5864818E4 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67895A6770898C4C4C45236 /* SettingsStoreTests.swift */; };
 		52103612B9827B57E792D250 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */; };
+		5AD6473872B542245D70DD8B /* SmokeAutoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EECC2BDB66121703F646D8F /* SmokeAutoTests.swift */; };
 		5BBBC1DAA379B6BBF6B6CD7E /* WordDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B70E0CF838A014B6242558 /* WordDiffTests.swift */; };
 		6439D9F9DC5ACEDFDF553101 /* WordDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AD211B88A972F69B247B1B4 /* WordDiff.swift */; };
 		6CBECE7C9A9B84843EC38842 /* APIClientRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */; };
@@ -69,6 +70,7 @@
 		62A6812FB507026EBBB581E8 /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
 		6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientRefreshTests.swift; sourceTree = "<group>"; };
 		680B345FBE280BD1BA2458E9 /* ReadingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingListView.swift; sourceTree = "<group>"; };
+		6EECC2BDB66121703F646D8F /* SmokeAutoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeAutoTests.swift; sourceTree = "<group>"; };
 		769181079DF5D4C6754AEE53 /* ReadingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStore.swift; sourceTree = "<group>"; };
 		796D233DA767AA13B080430A /* WordCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCardView.swift; sourceTree = "<group>"; };
 		7E0C20393A2344FBC638EF5B /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				C92992ADCF557ED09396616C /* DTOTests.swift */,
 				A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */,
 				A67895A6770898C4C4C45236 /* SettingsStoreTests.swift */,
+				6EECC2BDB66121703F646D8F /* SmokeAutoTests.swift */,
 				5D1C23D3C55A214D957A2982 /* SmokeTests.swift */,
 				803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */,
 				95B70E0CF838A014B6242558 /* WordDiffTests.swift */,
@@ -339,6 +342,7 @@
 				87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */,
 				4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */,
 				4F55C4FF2328E7C5864818E4 /* SettingsStoreTests.swift in Sources */,
+				5AD6473872B542245D70DD8B /* SmokeAutoTests.swift in Sources */,
 				25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */,
 				E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */,
 				5BBBC1DAA379B6BBF6B6CD7E /* WordDiffTests.swift in Sources */,

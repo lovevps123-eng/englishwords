@@ -1,22 +1,31 @@
 // SmokeAuto.swift — DEBUG-only 冒烟自动化开关。
-// SMOKE_AUTO=1 时，App 启动后自动完成登录 → 依次切换 Tab → 背 3 词 → 打开一篇阅读文章，
-// 用于对生产环境做全流程截图冒烟（见 app/README.md「冒烟测试」）。整个文件包在 #if DEBUG 里，
-// Release/TestFlight/App Store 构建不含这段代码，不会被误触发；即便触发也需要显式设置的环境变量，
-// 不影响任何普通用户路径。
+// 仅当 SMOKE_AUTO、SMOKE_PHONE、SMOKE_PASSWORD 均由运行环境显式提供时，
+// App 才会执行登录 → 切换 Tab → 背 3 词 → 打开阅读文章的生产冒烟流程。
+// Release/TestFlight/App Store 构建不包含这段代码。
 #if DEBUG
 import Foundation
 
+struct SmokeCredentials: Equatable {
+    let phone: String
+    let password: String
+}
+
 enum SmokeAuto {
+    static var credentials: SmokeCredentials? {
+        credentials(environment: ProcessInfo.processInfo.environment)
+    }
+
     static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["SMOKE_AUTO"] == "1"
+        credentials != nil
     }
 
-    static var phone: String {
-        ProcessInfo.processInfo.environment["SMOKE_PHONE"] ?? "<removed-smoke-phone>"
-    }
-
-    static var password: String {
-        ProcessInfo.processInfo.environment["SMOKE_PASSWORD"] ?? "<removed-smoke-password>"
+    static func credentials(environment: [String: String]) -> SmokeCredentials? {
+        guard environment["SMOKE_AUTO"] == "1",
+              let phone = environment["SMOKE_PHONE"], !phone.isEmpty,
+              let password = environment["SMOKE_PASSWORD"], !password.isEmpty else {
+            return nil
+        }
+        return SmokeCredentials(phone: phone, password: password)
     }
 
     /// 把当前步骤名写入 App 沙盒 Documents/smoke_marker.txt。外部截图脚本轮询这个文件的内容，
@@ -29,8 +38,8 @@ enum SmokeAuto {
 }
 
 extension Notification.Name {
-    /// RootView 的冒烟编排器在切到"阅读"Tab 并等列表加载后，用这个通知让 ReadingListView
-    /// 自动 push 第一篇文章的详情页，模拟"点列表进详情"这一步。
+    /// RootView 的冒烟编排器在切到“阅读”Tab 并等列表加载后，用这个通知让 ReadingListView
+    /// 自动 push 第一篇文章的详情页，模拟“点列表进详情”这一步。
     static let smokeOpenFirstArticle = Notification.Name("smokeOpenFirstArticle")
 }
 #endif
