@@ -30,6 +30,12 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
     }
 
+    func testDebugNormalizesRepeatedRootSlashesToNoPath() throws {
+        let subject = AppConfiguration(defaults: defaults, environment: .debug)
+        try subject.applyServerOverride("https://staging.example.com///")
+        XCTAssertEqual(subject.baseURL.absoluteString, "https://staging.example.com")
+    }
+
     func testDebugPreservesNonRootPathWhileRemovingTrailingSlashes() throws {
         let subject = AppConfiguration(defaults: defaults, environment: .debug)
         try subject.applyServerOverride("https://staging.example.com/api///")

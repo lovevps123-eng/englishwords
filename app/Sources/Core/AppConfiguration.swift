@@ -80,7 +80,7 @@ struct AppConfiguration {
 
         components.scheme = scheme
         components.host = host
-        if components.path == "/" {
+        if !components.path.isEmpty && components.path.allSatisfy({ $0 == "/" }) {
             components.path = ""
         } else {
             while components.path.count > 1, components.path.hasSuffix("/") {
