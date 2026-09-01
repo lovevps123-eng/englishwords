@@ -15,8 +15,6 @@ targets:
         CFBundleDisplayName: Love English
         NSMicrophoneUsageDescription: 录音用于跟读发音评分
         NSSpeechRecognitionUsageDescription: 本地识别你的跟读发音
-        NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
     settings:
@@ -26,6 +24,11 @@ targets:
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.9"
+      configs:
+        Debug:
+          INFOPLIST_FILE: Info-Debug.plist
+        Release:
+          INFOPLIST_FILE: Info.plist
   EnglishWordsTests:
     type: bundle.unit-test
     platform: iOS
