@@ -16,6 +16,7 @@
 		3F1638C336982977D7630D6D /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0C20393A2344FBC638EF5B /* TodayView.swift */; };
 		4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */; };
 		4825E6ADAEF8DDA398C451E4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF5A66EB4E4166293AEEEF0 /* SettingsView.swift */; };
+		484968C8BD25BFC090A77058 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5D76B402932E44F56134352 /* Assets.xcassets */; };
 		4E0177BB7C75C7DA7A8C266C /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */; };
 		4F55C4FF2328E7C5864818E4 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67895A6770898C4C4C45236 /* SettingsStoreTests.swift */; };
 		52103612B9827B57E792D250 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */; };
@@ -84,6 +85,7 @@
 		A67895A6770898C4C4C45236 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		B0F02AF3318F47A8E590F133 /* EnglishWordsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnglishWordsApp.swift; sourceTree = "<group>"; };
+		B5D76B402932E44F56134352 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B85FABAB90F245A17CD53776 /* ReadingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDetailView.swift; sourceTree = "<group>"; };
 		C92992ADCF557ED09396616C /* DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOTests.swift; sourceTree = "<group>"; };
 		D4FE956FA4016F50758EC2FC /* SpeakingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakingView.swift; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 		A18BE5472D12AD068654CD70 = {
 			isa = PBXGroup;
 			children = (
+				D2666451A88BF988E969398B /* Resources */,
 				A9C7AF85014CB5D9F46D7DC1 /* Sources */,
 				C9F1D81285A7F07750545E0D /* Tests */,
 				2E5A86F8D4CCE4284E145FD8 /* Products */,
@@ -223,6 +226,14 @@
 			path = Vocab;
 			sourceTree = "<group>";
 		};
+		D2666451A88BF988E969398B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B5D76B402932E44F56134352 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -249,6 +260,7 @@
 			buildConfigurationList = B8119DF724EE5716781841DF /* Build configuration list for PBXNativeTarget "EnglishWords" */;
 			buildPhases = (
 				896EF35D4782D895631B33AB /* Sources */,
+				4DB07584EE72A7F7882C60DD /* Resources */,
 			);
 			buildRules = (
 			);
@@ -299,6 +311,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4DB07584EE72A7F7882C60DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				484968C8BD25BFC090A77058 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		896EF35D4782D895631B33AB /* Sources */ = {
