@@ -1,6 +1,5 @@
-// ReadingStore.swift — 外刊阅读模块：文章列表/详情拉取 + 阅读页点词收藏。
-// 无本地持久化需求（不同于 VocabStore 的离线队列）：文章列表/详情是纯网络请求的薄封装，
-// View 层自行持有 @State 结果；这里只做 APIClient 调用与结果归类。
+// ReadingStore.swift — 首版仅展示随 App 内置的双语学习短文；点词收藏仍走现有 API。
+// 不读取后端抓取文章，也不在资源缺失或未知 ID 时回退到网络文章接口。
 import Foundation
 
 @Observable
@@ -11,17 +10,50 @@ final class ReadingStore {
         self.apiClient = apiClient
     }
 
-    /// difficulty 传 nil 或空串等价于"全部"（不带该 query 参数，对应后端 difficulty: str | None = None）。
+    /// 保持现有列表接口，在内置内容中先按难度筛选，再分页。
     func fetchArticles(difficulty: String?, page: Int = 1, perPage: Int = 20) async throws -> ArticleListResponse {
-        var path = "/api/articles?page=\(page)&per_page=\(perPage)"
-        if let difficulty, !difficulty.isEmpty {
-            path += "&difficulty=\(difficulty)"
+        guard page > 0, perPage > 0 else { throw ReadingContentError.invalidPage }
+        let articles = try bundledArticles().filter {
+            difficulty == nil || difficulty == "" || $0.difficulty == difficulty
         }
-        return try await apiClient.get(path)
+        let total = articles.count
+        let pages = total / perPage + (total % perPage == 0 ? 0 : 1)
+        guard page <= pages else {
+            return ArticleListResponse(items: [], total: total, page: page, pages: pages)
+        }
+        let start = (page - 1) * perPage
+        let items = articles.dropFirst(start).prefix(perPage).map {
+            ArticleSummary(id: $0.id, source: $0.source, title: $0.title, titleCn: $0.titleCn,
+                           summary: $0.summary, difficulty: $0.difficulty, category: $0.category,
+                           wordCount: $0.wordCount, publishedAt: $0.publishedAt)
+        }
+        return ArticleListResponse(items: items, total: total, page: page, pages: pages)
     }
 
     func fetchArticleDetail(id: String) async throws -> ArticleDetail {
-        try await apiClient.get("/api/articles/\(id)")
+        guard let article = try bundledArticles().first(where: { $0.id == id }) else {
+            throw ReadingContentError.articleNotFound
+        }
+        return article
+    }
+
+    private func bundledArticles() throws -> [ArticleDetail] {
+        guard let url = Bundle.main.url(forResource: "original-reading", withExtension: "json") else {
+            throw ReadingContentError.resourceMissing
+        }
+        return try JSONDecoder().decode([ArticleDetail].self, from: Data(contentsOf: url))
+    }
+
+    private enum ReadingContentError: LocalizedError {
+        case resourceMissing, articleNotFound, invalidPage
+
+        var errorDescription: String? {
+            switch self {
+            case .resourceMissing: return "内置学习短文暂时不可用"
+            case .articleNotFound: return "未找到这篇学习短文"
+            case .invalidPage: return "文章分页参数无效"
+            }
+        }
     }
 
     enum CollectOutcome: Equatable {

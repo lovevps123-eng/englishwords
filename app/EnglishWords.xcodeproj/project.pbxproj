@@ -34,6 +34,7 @@
 		7D9E04B1A48FD020881114DB /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */; };
 		87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92992ADCF557ED09396616C /* DTOTests.swift */; };
 		8757FF85257F796B141E2987 /* TurnstileChallengeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D190934AA6AD4DBC7008AF3 /* TurnstileChallengeTests.swift */; };
+		8AC967EC58613090131B1D54 /* original-reading.json in Resources */ = {isa = PBXBuildFile; fileRef = 1D99F7F601DDAFE8D6148056 /* original-reading.json */; };
 		A48901CBB435B76A141524E1 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982EC216281476DED6532A3E /* KeychainStore.swift */; };
 		AE4BDB8A89A5DC014217F4F2 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCDCB476E2DCC1A098784CE /* SettingsStore.swift */; };
 		AEEC51228FA40D379A3D90AA /* ReadingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B85FABAB90F245A17CD53776 /* ReadingDetailView.swift */; };
@@ -69,6 +70,7 @@
 		18E43F499BE06780638E49AB /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		1AD211B88A972F69B247B1B4 /* WordDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiff.swift; sourceTree = "<group>"; };
 		1CB3318E342045A2006195CC /* SmokeAuto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeAuto.swift; sourceTree = "<group>"; };
+		1D99F7F601DDAFE8D6148056 /* original-reading.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "original-reading.json"; sourceTree = "<group>"; };
 		24A888ED7597C6ACCC88FE16 /* EnglishWordsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EnglishWordsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		35FB87F48109C30419D88FB1 /* APIClientSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientSecurityTests.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 			isa = PBXGroup;
 			children = (
 				B5D76B402932E44F56134352 /* Assets.xcassets */,
+				1D99F7F601DDAFE8D6148056 /* original-reading.json */,
 				E92FD251D7EDCD9476A982BD /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
@@ -351,6 +354,7 @@
 			files = (
 				484968C8BD25BFC090A77058 /* Assets.xcassets in Resources */,
 				1C9DAC160B32EFB5CED8E011 /* PrivacyInfo.xcprivacy in Resources */,
+				8AC967EC58613090131B1D54 /* original-reading.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

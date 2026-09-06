@@ -16,7 +16,7 @@ targets:
       properties:
         CFBundleDisplayName: Love English
         CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "2"
+        CFBundleVersion: "3"
         NSMicrophoneUsageDescription: 录音用于跟读发音评分
         NSSpeechRecognitionUsageDescription: 本地识别你的跟读发音
         UILaunchScreen: {}

@@ -76,24 +76,57 @@ final class ReadingStoreTests: XCTestCase {
         store = ReadingStore(apiClient: apiClient)
     }
 
-    // ① 难度筛选为空（"全部"）不应带 difficulty query 参数。
-    func testFetchArticlesWithoutDifficultyOmitsQueryParam() async throws {
-        _ = try await store.fetchArticles(difficulty: "")
-        XCTAssertFalse(ReadingAPIMockProtocol.lastRequestedPath?.contains("difficulty") ?? true)
+    // 首版不能再把后端抓取列表展示出来，也不应在本地内容失败时退回该接口。
+    func testFetchArticlesUsesBundledOriginalsWithoutArticleRequest() async throws {
+        let response = try await store.fetchArticles(difficulty: "")
+        XCTAssertEqual(response.total, 6)
+        XCTAssertEqual(response.items.first?.id, "original-small-notebook")
+        XCTAssertTrue(response.items.allSatisfy { $0.source == "AI 辅助创作" })
+        XCTAssertNil(ReadingAPIMockProtocol.lastRequestedPath)
     }
 
-    // ② 指定难度应原样拼进 query（对应后端 difficulty: str | None query 参数名）。
-    func testFetchArticlesWithDifficultyIncludesQueryParam() async throws {
-        _ = try await store.fetchArticles(difficulty: "advanced")
-        XCTAssertTrue(ReadingAPIMockProtocol.lastRequestedPath?.contains("difficulty=advanced") ?? false)
+    func testFetchArticlesFiltersBeforePagination() async throws {
+        let response = try await store.fetchArticles(difficulty: "advanced", page: 2, perPage: 2)
+        XCTAssertEqual(response.total, 3)
+        XCTAssertEqual(response.pages, 2)
+        XCTAssertEqual(response.page, 2)
+        XCTAssertEqual(response.items.map(\.id), ["original-library-map"])
+        XCTAssertNil(ReadingAPIMockProtocol.lastRequestedPath)
     }
 
-    // ③ 详情接口解码 + 段落按 "\n\n" 切分。
-    func testFetchArticleDetailDecodesAndSplitsParagraphs() async throws {
-        let detail = try await store.fetchArticleDetail(id: "abc")
-        XCTAssertEqual(detail.difficulty, "advanced")
-        XCTAssertEqual(detail.content.components(separatedBy: "\n\n"), ["P1.", "P2."])
-        XCTAssertEqual(detail.contentCn?.components(separatedBy: "\n\n"), ["中1。", "中2。"])
+    func testEveryListedArticleHasAlignedBilingualDetail() async throws {
+        let response = try await store.fetchArticles(difficulty: nil)
+        XCTAssertEqual(response.items.count, 6)
+        XCTAssertEqual(Set(response.items.map(\.id)).count, 6)
+        for item in response.items {
+            let detail = try await store.fetchArticleDetail(id: item.id)
+            XCTAssertEqual(detail.id, item.id)
+            XCTAssertEqual(detail.title, item.title)
+            XCTAssertTrue(detail.sourceUrl.isEmpty)
+            let english = detail.content.components(separatedBy: "\n\n")
+            let chinese = try XCTUnwrap(detail.contentCn).components(separatedBy: "\n\n")
+            XCTAssertEqual(english.count, 3)
+            XCTAssertEqual(chinese.count, english.count)
+            XCTAssertTrue(chinese.allSatisfy { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+            XCTAssertEqual(detail.wordCount, detail.content.split(whereSeparator: \.isWhitespace).count)
+            XCTAssertGreaterThanOrEqual(detail.wordCount, 100)
+        }
+        XCTAssertNil(ReadingAPIMockProtocol.lastRequestedPath)
+    }
+
+    func testUnknownArticleDoesNotFallBackToScrapedDetail() async {
+        do {
+            _ = try await store.fetchArticleDetail(id: "abc")
+            XCTFail("不应加载后端抓取的文章")
+        } catch {
+            XCTAssertNil(ReadingAPIMockProtocol.lastRequestedPath)
+        }
+    }
+
+    func testOutOfRangePageReturnsEmptyList() async throws {
+        let response = try await store.fetchArticles(difficulty: nil, page: 20, perPage: 2)
+        XCTAssertTrue(response.items.isEmpty)
+        XCTAssertEqual(response.total, 6)
     }
 
     // ④ 收藏成功（新建）。
