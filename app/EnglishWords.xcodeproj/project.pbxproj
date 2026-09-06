@@ -13,6 +13,7 @@
 		158CF634D3974E758DBB6B15 /* AccountManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44515AD100BBBB79F1BAAA4 /* AccountManagementView.swift */; };
 		197DA9CCC0EA22C472200EAC /* ReadingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680B345FBE280BD1BA2458E9 /* ReadingListView.swift */; };
 		1BC6CE41032C6765114EC28C /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49793C2AC17CFEE9FB0A85D /* RegistrationView.swift */; };
+		1C9DAC160B32EFB5CED8E011 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E92FD251D7EDCD9476A982BD /* PrivacyInfo.xcprivacy */; };
 		23B03CBB81B52268FF1F060E /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C520CA8B8F1AFAD59FAAD66 /* APIClient.swift */; };
 		25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D1C23D3C55A214D957A2982 /* SmokeTests.swift */; };
 		3052FCD29F6A9FCD831F1E97 /* APIClientSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FB87F48109C30419D88FB1 /* APIClientSecurityTests.swift */; };
@@ -104,6 +105,7 @@
 		C92992ADCF557ED09396616C /* DTOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOTests.swift; sourceTree = "<group>"; };
 		D4FE956FA4016F50758EC2FC /* SpeakingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakingView.swift; sourceTree = "<group>"; };
 		DFCDCB476E2DCC1A098784CE /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		E92FD251D7EDCD9476A982BD /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ECF528BB8E171A221EB4F079 /* VocabModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabModels.swift; sourceTree = "<group>"; };
 		F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -259,6 +261,7 @@
 			isa = PBXGroup;
 			children = (
 				B5D76B402932E44F56134352 /* Assets.xcassets */,
+				E92FD251D7EDCD9476A982BD /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				484968C8BD25BFC090A77058 /* Assets.xcassets in Resources */,
+				1C9DAC160B32EFB5CED8E011 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

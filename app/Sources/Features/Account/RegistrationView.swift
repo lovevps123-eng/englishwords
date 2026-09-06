@@ -5,7 +5,7 @@ struct RegistrationView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingChallenge = false
 
-    private let privacyURL = AppConfiguration.productionBaseURL.appendingPathComponent("privacy")
+    private let privacyURL = AppConfiguration.privacyPolicyURL
 
     var body: some View {
         @Bindable var store = lifecycleStore

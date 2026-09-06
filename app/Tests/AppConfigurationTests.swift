@@ -24,6 +24,17 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(subject.baseURL, URL(string: "https://senior.dafang-edu.com")!)
     }
 
+    func testPublicPrivacyAndSupportURLsUseProductionHTTPSOrigin() {
+        XCTAssertEqual(
+            AppConfiguration.privacyPolicyURL,
+            URL(string: "https://senior.dafang-edu.com/privacy")!
+        )
+        XCTAssertEqual(
+            AppConfiguration.supportURL,
+            URL(string: "https://senior.dafang-edu.com/support")!
+        )
+    }
+
     func testDebugAcceptsAndNormalizesHTTPSOverride() throws {
         let subject = AppConfiguration(defaults: defaults, environment: .debug)
         try subject.applyServerOverride("  https://staging.example.com///  ")

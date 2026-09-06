@@ -86,6 +86,8 @@ struct SettingsView: View {
                     NavigationLink("账号与隐私") {
                         AccountManagementView()
                     }
+                    Link("隐私政策", destination: AppConfiguration.privacyPolicyURL)
+                    Link("联系我们", destination: AppConfiguration.supportURL)
                 }
 
                 Section {

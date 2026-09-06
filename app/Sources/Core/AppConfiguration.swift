@@ -33,6 +33,8 @@ enum ConfigurationError: Error, LocalizedError, Equatable {
 
 struct AppConfiguration {
     static let productionBaseURL = URL(string: "https://senior.dafang-edu.com")!
+    static let privacyPolicyURL = productionBaseURL.appendingPathComponent("privacy")
+    static let supportURL = productionBaseURL.appendingPathComponent("support")
     static let serverOverrideKey = "serverBaseURL"
 
     let defaults: UserDefaults
