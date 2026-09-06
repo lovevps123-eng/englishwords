@@ -11,7 +11,8 @@
 | 答题反馈、掌握程度、收藏及时间 | Usage Data → Product Interaction | App Functionality；Product Personalization：安排复习队列 | 是 | `VocabStore` 同步；`UserWordProgress` 和结果日志保存 |
 | 认证事件、IP、User-Agent、限流信息 | 暂拟 Other Data Types；最终按实际日志用途确认 | App Functionality：防滥用、账号安全与运行维护 | 账号相关审计记录：是 | 不可因其为技术数据而漏报；未发现基于 IP 推断地理位置的路径 |
 | 录音、语音识别文本和匹配得分 | 本版本不作为离开设备收集的 Audio Data 申报 | 本地跟读 | 本地 | `requiresOnDeviceRecognition = true`，无服务器上传路径 |
-| 阅读／跟读任务勾选、每日新词量、难度设置 | 本地保存；难度／词量作为获取队列请求参数传输 | 本地界面偏好及请求服务 | 视字段而定 | 不把纯本地勾选误写成云端记录；参数的日志留存需确认 |
+| 阅读／跟读任务勾选、每日新词量、难度设置 | 任务勾选本地保存；难度／词量作为获取词汇队列的请求参数传输 | 本地界面偏好及词汇请求 | 视字段而定 | 内置短文的阅读任务不上传；参数的基础设施日志留存需确认 |
+| 短文点词收藏 | Usage Data → Product Interaction | App Functionality；Product Personalization：加入学习队列 | 是 | 只有用户点词收藏时向后端词汇接口发送匹配词；内置短文列表／详情不联网 |
 | 登录密码、认证令牌 | 在政策中解释认证处理；不机械增加一个不存在的“密码”标签分类 | App Functionality | 账号相关 | 当前登录路径使用密码哈希验证；Keychain 保存令牌 |
 
 “用于追踪”暂拟否：已检查的 App 源码未集成广告、IDFA、ATT、第三方统计或崩溃 SDK，也未发现广告归因或跨公司用户画像用途。这个判断只覆盖已核查的实现；发布前仍须确认线上网络／托管服务商不会以其他目的使用数据。
@@ -27,11 +28,11 @@
 - `app/Sources/Core/KeychainStore.swift:54`：Keychain 写入与设备锁定可访问性。
 - `app/Sources/Features/Vocab/VocabStore.swift:27`：队列拉取；`:60` 答题记录；`:76` 同步。
 - `app/Sources/Features/Vocab/VocabModels.swift:50`：逐条结果随机 UUID，不是持久设备 ID。
-- `app/Sources/Features/Reading/ReadingStore.swift`：文章请求与词汇收藏。
+- `app/Sources/Features/Reading/ReadingStore.swift`、`app/Resources/original-reading.json`：六篇双语短文从 App bundle 读取，无后端文章列表／详情回退；点词收藏继续调用词汇接口。
 - `app/Sources/Features/Speaking/Recognizer.swift:30`：离线能力检查与设备端识别要求。
 - `app/Sources/Features/Speaking/ScoringStrategy.swift`：识别文字匹配得分，不是专业音素级评分。
 - `app/Sources/Features/Vocab/WordCardView.swift:10`：系统语音合成，不调用平台 TTS API。
-- `app/Sources/Features/Today/TodayView.swift:120`：本地阅读／跟读任务状态。
+- `app/Sources/Features/Today/TodayView.swift`：本地阅读／跟读任务状态。
 - `app/Sources/Features/Auth/LoginView.swift`、`Features/Account/RegistrationView.swift`：App 内提交注册申请，账号在管理员审批通过前不能进入学习功能。
 - `app/Sources/Features/Settings/SettingsView.swift`：提供“账号与隐私”、隐私政策和联系我们入口；登出清理本地记录，但不等于注销服务端账号。
 - `app/Sources/Features/Account/AccountManagementView.swift`：重新验证后查看账号状态、提交或撤回注销申请，并通过回执查询处理进度。
@@ -42,7 +43,6 @@
 - `senior-platform/backend/app/core/audit.py:22`、`models/audit_log.py:14`：IP、User-Agent、账号、事件详情及时间持久化。
 - `senior-platform/backend/app/core/rate_limit.py:24`：Redis 保存 IP 限流计数，代码配置有 TTL；不代表数据库日志采用相同时限。
 - `senior-platform/backend/app/models/vocab.py:28`、`api/vocab.py:30`：账号关联的进度和个性化复习队列。
-- `senior-platform/backend/app/api/articles.py:62`：读取文章，不单独写入阅读历史；不排除基础设施日志记录请求。
 
 ## 不可直接照搬的内容
 
@@ -56,13 +56,14 @@
 
 ### 必须补齐／验证
 
-- [x] 已在未登录浏览器验证 `https://senior.dafang-edu.com/privacy` 和 `https://senior.dafang-edu.com/support` 可公开渲染；App 在注册页和设置页提供入口。政策内容仍须在 SLA／留存规则确认后定稿。依据：[审核指南 5.1.1](https://developer.apple.com/app-store/review/guidelines/#privacy)。
+- [x] 已在未登录浏览器验证 `https://senior.dafang-edu.com/privacy` 和 `https://senior.dafang-edu.com/support` 可公开渲染；App 在注册页和设置页提供入口。SLA／回执期限已确认，政策内容仍须在其他留存规则确认后定稿。依据：[审核指南 5.1.1](https://developer.apple.com/app-store/review/guidelines/#privacy)。
 - [ ] 在隔离环境验证已实现的账号生命周期全流程：App 内注册申请、管理员审批、账号重新验证、注销申请／撤回、回执查询及完成后的本地清理。生产删除策略未启用前，不能把代码存在写成线上已可用。依据：[Apple 账号删除指引](https://developer.apple.com/support/offering-account-deletion-in-your-app/)。
-- [ ] 核对注销清单覆盖的账号关联数据，并确认审计、支付、备份等数据的保留／清理规则；当前已实现注销队列和后台处理流程，但保留规则与生产执行结果仍须确认，不能承诺未验证的彻底删除范围。
+- [ ] 注销处理期限 7 个自然日、完成后回执查询 30 天已获用户确认；仍须核对注销清单覆盖的账号关联数据，并确认审计、支付、备份等其他保留／清理规则，不能承诺未验证的彻底删除范围。
 - [x] 导出 IPA 已核对 `PrivacyInfo.xcprivacy`，UserDefaults 所需理由为 `CA92.1`；依赖发生变化时仍须重新检查。参考：[Apple Required Reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)。
 - [ ] 运营主体和版权已按用户确认使用 `shaofei Ma（韶飞 麻）`；仍须确认政策生效日期及最终正式联系信息。
 - [ ] 核对实际生产服务商、处理地区、访问日志用途／期限、数据库保留策略和备份生命周期，再定稿安全日志的隐私分类。
-- [ ] 核实词典、例句、文章和译文的使用及商店截图展示权。服务端能返回内容不等于已证明出版或展示授权。
+- [x] 六篇内置短文已逐篇核对英中对应，来源记录已核对，独立审阅无阻塞；该结论是本轮内容核对结果，不表述为版权或人工法务审核证明。
+- [ ] 继续核实词典释义、例句等既有内容的来源及商店截图展示权；内置短文核对完成不证明其他内容已获授权。
 
 ### 本轮不执行
 

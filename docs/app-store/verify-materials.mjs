@@ -27,7 +27,7 @@ assert.equal(section('关键词'), listing.keywords);
 const descriptionLength = [...section('描述')].length;
 assert(descriptionLength > 0 && descriptionLength <= 4000);
 console.log(`description: ${descriptionLength}/4000`);
-assert.equal(listing.status, 'app_store_connect_draft_partially_saved');
+assert.equal(listing.status, 'build3_bundled_reading_uploaded_draft_not_submitted');
 assert.equal(listing.supportUrl, 'https://senior.dafang-edu.com/support');
 assert.equal(listing.privacyPolicyUrl, 'https://senior.dafang-edu.com/privacy');
 assert.equal(listing.copyright, '2026 shaofei Ma');
@@ -49,7 +49,8 @@ for (const {file, sha256} of manifest.screenshots) {
 }
 
 const textFiles = [
-  'README.md', 'verification.md', 'release-status.md', 'privacy-review.md', 'zh-Hans/store-listing.md',
+  'README.md', 'verification.md', 'release-status.md', 'privacy-review.md',
+  'original-reading-provenance.md', 'zh-Hans/store-listing.md',
   'zh-Hans/store-listing.json', 'zh-Hans/privacy-policy.draft.md', 'zh-Hans/support.draft.md',
   'screenshots/manifest.json'
 ];
