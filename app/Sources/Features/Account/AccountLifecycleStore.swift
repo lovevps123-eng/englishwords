@@ -12,12 +12,18 @@ enum AccountLifecycleScreenState: Equatable {
 }
 
 protocol DeletionReceiptStoring: AnyObject {
-    @discardableResult func saveDeletionReceipt(_ receipt: String) -> Bool
-    func loadDeletionReceipt() -> String?
+    @discardableResult func saveDeletionReceiptRecord(_ record: DeletionReceiptRecord) -> Bool
+    func loadDeletionReceiptRecord() -> DeletionReceiptRecord?
     @discardableResult func clearDeletionReceipt() -> Bool
 }
 
 extension KeychainStore: DeletionReceiptStoring {}
+
+protocol LearningCredentialProviding: AnyObject {
+    func loadTokens() -> AuthTokens?
+}
+
+extension KeychainStore: LearningCredentialProviding {}
 
 protocol AccountDataCleaning: AnyObject {
     func clearAfterConfirmedDeletion()
@@ -120,6 +126,7 @@ final class AccountLifecycleStore {
 
     private let client: AccountLifecycleClient
     private let receiptStore: DeletionReceiptStoring
+    private let learningCredentialStore: LearningCredentialProviding
     private let dataCleaner: AccountDataCleaning?
     private let now: () -> Date
     private var managementToken: String?
@@ -130,14 +137,16 @@ final class AccountLifecycleStore {
     init(
         client: AccountLifecycleClient = APIClient.shared,
         receiptStore: DeletionReceiptStoring = KeychainStore.shared,
+        learningCredentialStore: LearningCredentialProviding = KeychainStore.shared,
         dataCleaner: AccountDataCleaning? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.client = client
         self.receiptStore = receiptStore
+        self.learningCredentialStore = learningCredentialStore
         self.dataCleaner = dataCleaner
         self.now = now
-        self.hasDeletionReceipt = receiptStore.loadDeletionReceipt() != nil
+        self.hasDeletionReceipt = receiptStore.loadDeletionReceiptRecord() != nil
     }
 
     var isRegistering: Bool { registrationInFlight }
@@ -308,6 +317,10 @@ final class AccountLifecycleStore {
             return
         }
         guard let token = validManagementToken() else { return }
+        guard let accountSubject = Self.jwtSubject(from: token) else {
+            state = .failure("账号管理凭据无效，请重新验证")
+            return
+        }
 
         isDeletionInFlight = true
         deletionMessage = nil
@@ -323,14 +336,23 @@ final class AccountLifecycleStore {
                 managementToken: token
             )
             if let receipt = response.receipt {
-                guard receiptStore.saveDeletionReceipt(receipt) else {
+                let record = DeletionReceiptRecord(
+                    receipt: receipt,
+                    requestID: response.id,
+                    accountSubject: accountSubject
+                )
+                guard receiptStore.saveDeletionReceiptRecord(record) else {
                     state = .failure("无法安全保存注销回执，请重试")
                     return
                 }
                 hasDeletionReceipt = true
-            } else if receiptStore.loadDeletionReceipt() == nil {
-                state = .failure("未找到注销回执，请联系管理员")
-                return
+            } else {
+                guard let record = receiptStore.loadDeletionReceiptRecord(),
+                      record.requestID == response.id,
+                      record.accountSubject == accountSubject else {
+                    state = .failure("现有注销回执与当前申请不匹配，请联系管理员")
+                    return
+                }
             }
             hasDeletionReceipt = true
             deletionConfirmation = ""
@@ -365,21 +387,23 @@ final class AccountLifecycleStore {
 
     func refreshReceiptStatus() async {
         guard !isDeletionInFlight else { return }
-        guard let receipt = receiptStore.loadDeletionReceipt(), !receipt.isEmpty else {
+        guard let record = receiptStore.loadDeletionReceiptRecord(), !record.receipt.isEmpty else {
             hasDeletionReceipt = false
             state = .failure("本机没有可查询的注销回执")
             return
         }
+        guard receiptMatchesCurrentAccount(record) else { return }
 
         isDeletionInFlight = true
         deletionMessage = nil
         defer { isDeletionInFlight = false }
         do {
-            let response = try await client.loadReceiptStatus(receipt: receipt)
+            let response = try await client.loadReceiptStatus(receipt: record.receipt)
             guard response.status == .completed else {
                 state = .receiptStatus(response)
                 return
             }
+            guard receiptMatchesCurrentAccount(record) else { return }
             guard let dataCleaner else {
                 state = .failure("本地账号数据清理尚未就绪，请稍后重试")
                 return
@@ -427,6 +451,52 @@ final class AccountLifecycleStore {
             return nil
         }
         return managementToken
+    }
+
+    private func receiptMatchesCurrentAccount(_ record: DeletionReceiptRecord) -> Bool {
+        switch currentAccountSubject() {
+        case .none:
+            return true
+        case .subject(let subject) where subject == record.accountSubject:
+            return true
+        case .subject, .invalid:
+            state = .failure("此注销回执不属于当前登录账号")
+            return false
+        }
+    }
+
+    private enum CurrentAccountSubject {
+        case none
+        case subject(String)
+        case invalid
+    }
+
+    private func currentAccountSubject() -> CurrentAccountSubject {
+        if let managementToken {
+            guard let subject = Self.jwtSubject(from: managementToken) else { return .invalid }
+            return .subject(subject)
+        }
+        if let accessToken = learningCredentialStore.loadTokens()?.access {
+            guard let subject = Self.jwtSubject(from: accessToken) else { return .invalid }
+            return .subject(subject)
+        }
+        return .none
+    }
+
+    private static func jwtSubject(from token: String) -> String? {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3 else { return nil }
+        var payload = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+        guard let data = Data(base64Encoded: payload),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let rawSubject = object["sub"] as? String,
+              let subject = UUID(uuidString: rawSubject)?.uuidString.lowercased() else {
+            return nil
+        }
+        return subject
     }
 
     private func summary(from response: DeletionRequestResponse) -> DeletionStatusSummary {

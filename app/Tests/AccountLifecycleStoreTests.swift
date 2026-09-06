@@ -1,6 +1,18 @@
 import XCTest
 @testable import EnglishWords
 
+private let accountSubjectA = "11111111-1111-1111-1111-111111111111"
+private let accountSubjectB = "22222222-2222-2222-2222-222222222222"
+
+private func testJWT(subject: String) -> String {
+    let payload = try! JSONSerialization.data(withJSONObject: ["sub": subject])
+    let encoded = payload.base64EncodedString()
+        .replacingOccurrences(of: "+", with: "-")
+        .replacingOccurrences(of: "/", with: "_")
+        .replacingOccurrences(of: "=", with: "")
+    return "e30.\(encoded).signature"
+}
+
 @MainActor
 private final class FakeAccountLifecycleClient: AccountLifecycleClient {
     var regions = [PublicRegion(id: "region-1", name: "北京")]
@@ -10,7 +22,7 @@ private final class FakeAccountLifecycleClient: AccountLifecycleClient {
         pendingApproval: true
     )
     var sessionResponse = AccountSessionResponse(
-        accountManagementToken: "management-token",
+        accountManagementToken: testJWT(subject: accountSubjectA),
         tokenType: "bearer",
         expiresIn: 600
     )
@@ -58,6 +70,7 @@ private final class FakeAccountLifecycleClient: AccountLifecycleClient {
     var cancellationError: Error?
     var receiptStatusError: Error?
     var deletionDelayNanoseconds: UInt64 = 0
+    var onReceiptStatusQuery: (() -> Void)?
     var registrationDelayNanoseconds: UInt64 = 0
 
     private(set) var registrationRequests: [RegistrationRequest] = []
@@ -115,31 +128,44 @@ private final class FakeAccountLifecycleClient: AccountLifecycleClient {
 
     func loadReceiptStatus(receipt: String) async throws -> ReceiptStatusResponse {
         queriedReceipts.append(receipt)
+        onReceiptStatusQuery?()
         if let receiptStatusError { throw receiptStatusError }
         return receiptStatusResponse
     }
 }
 
 private final class FakeDeletionReceiptStore: DeletionReceiptStoring {
-    var receipt: String?
+    var record: DeletionReceiptRecord?
     var saveSucceeds = true
-    private(set) var savedReceipts: [String] = []
+    private(set) var savedRecords: [DeletionReceiptRecord] = []
     private(set) var clearCount = 0
 
-    func saveDeletionReceipt(_ receipt: String) -> Bool {
-        savedReceipts.append(receipt)
+    func saveDeletionReceiptRecord(_ record: DeletionReceiptRecord) -> Bool {
+        savedRecords.append(record)
         guard saveSucceeds else { return false }
-        self.receipt = receipt
+        self.record = record
         return true
     }
 
-    func loadDeletionReceipt() -> String? { receipt }
+    func loadDeletionReceiptRecord() -> DeletionReceiptRecord? { record }
 
     func clearDeletionReceipt() -> Bool {
         clearCount += 1
-        receipt = nil
+        record = nil
         return true
     }
+}
+
+private final class FakeLearningCredentialStore: LearningCredentialProviding {
+    var tokens: AuthTokens?
+
+    init(subject: String? = nil) {
+        if let subject {
+            tokens = AuthTokens(access: testJWT(subject: subject), refresh: "refresh")
+        }
+    }
+
+    func loadTokens() -> AuthTokens? { tokens }
 }
 
 private final class FakeAccountDataCleaner: AccountDataCleaning {
@@ -316,7 +342,7 @@ final class AccountLifecycleStoreTests: XCTestCase {
             await store.authenticateAndLoadStatus()
 
             XCTAssertEqual(store.state, .status(client.statusResponse))
-            XCTAssertEqual(client.statusTokens, ["management-token"])
+            XCTAssertEqual(client.statusTokens, [testJWT(subject: accountSubjectA)])
         }
     }
 
@@ -370,8 +396,10 @@ final class AccountLifecycleStoreTests: XCTestCase {
         XCTAssertEqual(command.confirmation, "DELETE_ACCOUNT")
         XCTAssertEqual(command.policyVersion, "2026-09-06")
         XCTAssertEqual(command.reason, "不再使用")
-        XCTAssertEqual(token, "management-token")
-        XCTAssertEqual(receipts.receipt, "receipt-1")
+        XCTAssertEqual(token, testJWT(subject: accountSubjectA))
+        XCTAssertEqual(receipts.record, DeletionReceiptRecord(
+            receipt: "receipt-1", requestID: "deletion-1", accountSubject: accountSubjectA
+        ))
         XCTAssertEqual(store.currentDeletionStatus, .requested)
     }
 
@@ -385,7 +413,9 @@ final class AccountLifecycleStoreTests: XCTestCase {
 
         await store.requestDeletion()
 
-        XCTAssertEqual(receipts.savedReceipts, ["receipt-1"])
+        XCTAssertEqual(receipts.savedRecords, [DeletionReceiptRecord(
+            receipt: "receipt-1", requestID: "deletion-1", accountSubject: accountSubjectA
+        )])
         XCTAssertEqual(store.state, .failure("无法安全保存注销回执，请重试"))
         XCTAssertNil(store.currentDeletionStatus)
     }
@@ -399,22 +429,26 @@ final class AccountLifecycleStoreTests: XCTestCase {
             cancelledAt: nil, completedAt: nil, receipt: nil, idempotent: true
         )
         let receipts = FakeDeletionReceiptStore()
-        receipts.receipt = "existing-receipt"
+        receipts.record = DeletionReceiptRecord(
+            receipt: "existing-receipt", requestID: "deletion-1", accountSubject: accountSubjectA
+        )
         let store = AccountLifecycleStore(client: client, receiptStore: receipts)
         await authenticateActiveAccount(store, client: client)
         store.deletionConfirmation = "DELETE_ACCOUNT"
 
         await store.requestDeletion()
 
-        XCTAssertTrue(receipts.savedReceipts.isEmpty)
-        XCTAssertEqual(receipts.receipt, "existing-receipt")
+        XCTAssertTrue(receipts.savedRecords.isEmpty)
+        XCTAssertEqual(receipts.record?.receipt, "existing-receipt")
         XCTAssertEqual(store.currentDeletionStatus, .requested)
     }
 
     func testCancellationIsAllowedOnlyWhileRequested() async {
         let client = FakeAccountLifecycleClient()
         let receipts = FakeDeletionReceiptStore()
-        receipts.receipt = "receipt-1"
+        receipts.record = DeletionReceiptRecord(
+            receipt: "receipt-1", requestID: "deletion-1", accountSubject: accountSubjectA
+        )
         let store = AccountLifecycleStore(client: client, receiptStore: receipts)
         await authenticateActiveAccount(store, client: client)
         store.deletionConfirmation = "DELETE_ACCOUNT"
@@ -423,22 +457,28 @@ final class AccountLifecycleStoreTests: XCTestCase {
 
         await store.cancelDeletion()
 
-        XCTAssertEqual(client.cancellationTokens, ["management-token"])
+        XCTAssertEqual(client.cancellationTokens, [testJWT(subject: accountSubjectA)])
         XCTAssertEqual(client.statusTokens.count, 2, "撤回后应从服务器读取恢复后的账号状态")
         XCTAssertEqual(store.currentDeletionStatus, .cancelled)
 
         client.statusResponse = Self.activeStatus(deletionStatus: .processing)
         await authenticateActiveAccount(store, client: client)
         await store.cancelDeletion()
-        XCTAssertEqual(client.cancellationTokens, ["management-token"])
+        XCTAssertEqual(client.cancellationTokens, [testJWT(subject: accountSubjectA)])
         XCTAssertEqual(store.state, .failure("仅已收到、尚未处理的申请可以撤回"))
     }
 
     func testReceiptStatusCanBeQueriedWithoutManagementOrLearningSession() async {
         let client = FakeAccountLifecycleClient()
         let receipts = FakeDeletionReceiptStore()
-        receipts.receipt = "persisted-receipt"
-        let store = AccountLifecycleStore(client: client, receiptStore: receipts)
+        receipts.record = DeletionReceiptRecord(
+            receipt: "persisted-receipt", requestID: "deletion-1", accountSubject: accountSubjectA
+        )
+        let store = AccountLifecycleStore(
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: FakeLearningCredentialStore()
+        )
 
         await store.refreshReceiptStatus()
 
@@ -457,16 +497,21 @@ final class AccountLifecycleStoreTests: XCTestCase {
             failureCategory: nil
         )
         let receipts = FakeDeletionReceiptStore()
-        receipts.receipt = "persisted-receipt"
+        receipts.record = DeletionReceiptRecord(
+            receipt: "persisted-receipt", requestID: "deletion-1", accountSubject: accountSubjectA
+        )
         let cleaner = FakeAccountDataCleaner(receiptStore: receipts)
         let store = AccountLifecycleStore(
-            client: client, receiptStore: receipts, dataCleaner: cleaner
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: FakeLearningCredentialStore(),
+            dataCleaner: cleaner
         )
 
         await store.refreshReceiptStatus()
 
         XCTAssertEqual(cleaner.clearCount, 1)
-        XCTAssertNil(receipts.receipt)
+        XCTAssertNil(receipts.record)
         XCTAssertEqual(receipts.clearCount, 1)
         XCTAssertFalse(store.hasDeletionReceipt)
         XCTAssertEqual(store.state, .deletionCompleted(client.receiptStatusResponse))
@@ -487,16 +532,23 @@ final class AccountLifecycleStoreTests: XCTestCase {
                 failureCategory: status == .failed ? "external_file_failure" : nil
             )
             let receipts = FakeDeletionReceiptStore()
-            receipts.receipt = "persisted-receipt"
+            receipts.record = DeletionReceiptRecord(
+                receipt: "persisted-receipt",
+                requestID: "deletion-1",
+                accountSubject: accountSubjectA
+            )
             let cleaner = FakeAccountDataCleaner()
             let store = AccountLifecycleStore(
-                client: client, receiptStore: receipts, dataCleaner: cleaner
+                client: client,
+                receiptStore: receipts,
+                learningCredentialStore: FakeLearningCredentialStore(),
+                dataCleaner: cleaner
             )
 
             await store.refreshReceiptStatus()
 
             XCTAssertEqual(cleaner.clearCount, 0, "\(status) 不得触发清理")
-            XCTAssertEqual(receipts.receipt, "persisted-receipt")
+            XCTAssertEqual(receipts.record?.receipt, "persisted-receipt")
             XCTAssertEqual(store.state, .receiptStatus(client.receiptStatusResponse))
         }
 
@@ -510,16 +562,23 @@ final class AccountLifecycleStoreTests: XCTestCase {
             let client = FakeAccountLifecycleClient()
             client.receiptStatusError = error
             let receipts = FakeDeletionReceiptStore()
-            receipts.receipt = "persisted-receipt"
+            receipts.record = DeletionReceiptRecord(
+                receipt: "persisted-receipt",
+                requestID: "deletion-1",
+                accountSubject: accountSubjectA
+            )
             let cleaner = FakeAccountDataCleaner()
             let store = AccountLifecycleStore(
-                client: client, receiptStore: receipts, dataCleaner: cleaner
+                client: client,
+                receiptStore: receipts,
+                learningCredentialStore: FakeLearningCredentialStore(),
+                dataCleaner: cleaner
             )
 
             await store.refreshReceiptStatus()
 
             XCTAssertEqual(cleaner.clearCount, 0)
-            XCTAssertEqual(receipts.receipt, "persisted-receipt")
+            XCTAssertEqual(receipts.record?.receipt, "persisted-receipt")
             XCTAssertEqual(receipts.clearCount, 0)
         }
     }
@@ -540,6 +599,102 @@ final class AccountLifecycleStoreTests: XCTestCase {
 
         XCTAssertEqual(client.deletionRequests.count, 1)
         XCTAssertFalse(store.isDeletionInFlight)
+    }
+
+    func testReceiptOwnedByAnotherSignedInAccountIsNotQueriedOrCleared() async {
+        let client = FakeAccountLifecycleClient()
+        client.receiptStatusResponse = ReceiptStatusResponse(
+            status: .completed,
+            requestedAt: Date(timeIntervalSince1970: 1_000),
+            dueAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
+            cancelledAt: nil,
+            failureCategory: nil
+        )
+        let receipts = FakeDeletionReceiptStore()
+        receipts.record = DeletionReceiptRecord(
+            receipt: "receipt-a", requestID: "deletion-a", accountSubject: accountSubjectA
+        )
+        let learningCredentials = FakeLearningCredentialStore(subject: accountSubjectB)
+        let cleaner = FakeAccountDataCleaner(receiptStore: receipts)
+        let store = AccountLifecycleStore(
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: learningCredentials,
+            dataCleaner: cleaner
+        )
+
+        await store.refreshReceiptStatus()
+
+        XCTAssertTrue(client.queriedReceipts.isEmpty)
+        XCTAssertEqual(cleaner.clearCount, 0)
+        XCTAssertEqual(receipts.record?.receipt, "receipt-a")
+        XCTAssertEqual(store.state, .failure("此注销回执不属于当前登录账号"))
+    }
+
+    func testAccountSwitchDuringCompletedReceiptQueryPreventsCleanup() async {
+        let client = FakeAccountLifecycleClient()
+        client.receiptStatusResponse = ReceiptStatusResponse(
+            status: .completed,
+            requestedAt: Date(timeIntervalSince1970: 1_000),
+            dueAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
+            cancelledAt: nil,
+            failureCategory: nil
+        )
+        let receipts = FakeDeletionReceiptStore()
+        receipts.record = DeletionReceiptRecord(
+            receipt: "receipt-a", requestID: "deletion-a", accountSubject: accountSubjectA
+        )
+        let learningCredentials = FakeLearningCredentialStore(subject: accountSubjectA)
+        client.onReceiptStatusQuery = {
+            learningCredentials.tokens = AuthTokens(
+                access: testJWT(subject: accountSubjectB), refresh: "refresh"
+            )
+        }
+        let cleaner = FakeAccountDataCleaner(receiptStore: receipts)
+        let store = AccountLifecycleStore(
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: learningCredentials,
+            dataCleaner: cleaner
+        )
+
+        await store.refreshReceiptStatus()
+
+        XCTAssertEqual(client.queriedReceipts, ["receipt-a"])
+        XCTAssertEqual(cleaner.clearCount, 0)
+        XCTAssertEqual(receipts.record?.receipt, "receipt-a")
+        XCTAssertEqual(store.state, .failure("此注销回执不属于当前登录账号"))
+    }
+
+    func testIdempotentDeletionRejectsReceiptForDifferentRequestOrSubject() async {
+        let client = FakeAccountLifecycleClient()
+        client.deletionResponse = DeletionRequestResponse(
+            id: "deletion-1", status: .requested, policyVersion: "2026-09-06",
+            requestedAt: Date(timeIntervalSince1970: 1_000),
+            dueAt: Date(timeIntervalSince1970: 2_000), receiptExpiresAt: nil,
+            cancelledAt: nil, completedAt: nil, receipt: nil, idempotent: true
+        )
+        for record in [
+            DeletionReceiptRecord(
+                receipt: "wrong-request", requestID: "deletion-2", accountSubject: accountSubjectA
+            ),
+            DeletionReceiptRecord(
+                receipt: "wrong-subject", requestID: "deletion-1", accountSubject: accountSubjectB
+            ),
+        ] {
+            let receipts = FakeDeletionReceiptStore()
+            receipts.record = record
+            let store = AccountLifecycleStore(client: client, receiptStore: receipts)
+            await authenticateActiveAccount(store, client: client)
+            store.deletionConfirmation = "DELETE_ACCOUNT"
+
+            await store.requestDeletion()
+
+            XCTAssertEqual(store.state, .failure("现有注销回执与当前申请不匹配，请联系管理员"))
+            XCTAssertEqual(receipts.record, record)
+        }
     }
 
     private func fillValidRegistration(on store: AccountLifecycleStore) {

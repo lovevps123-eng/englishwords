@@ -57,7 +57,9 @@ final class SettingsStoreTests: XCTestCase {
     func testConfirmedDeletionClearsAllAccountLocalData() throws {
         let keychain = KeychainStore(service: "SettingsStoreTests.\(UUID().uuidString)")
         XCTAssertTrue(keychain.saveTokens(access: "access", refresh: "refresh"))
-        XCTAssertTrue(keychain.saveDeletionReceipt("receipt"))
+        XCTAssertTrue(keychain.saveDeletionReceiptRecord(DeletionReceiptRecord(
+            receipt: "receipt", requestID: "request-1", accountSubject: "subject-1"
+        )))
         let authStore = AuthStore(keychain: keychain)
         let settings = SettingsStore(
             defaults: defaults,
@@ -101,7 +103,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: SettingsStore.Keys.tier))
         XCTAssertNil(defaults.object(forKey: SettingsStore.Keys.dailyNewLimit))
         XCTAssertNil(keychain.loadTokens())
-        XCTAssertNil(keychain.loadDeletionReceipt())
+        XCTAssertNil(keychain.loadDeletionReceiptRecord())
         XCTAssertFalse(authStore.isAuthenticated)
     }
 }

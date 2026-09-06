@@ -7,6 +7,12 @@ struct AuthTokens: Equatable {
     let refresh: String
 }
 
+struct DeletionReceiptRecord: Codable, Equatable {
+    let receipt: String
+    let requestID: String
+    let accountSubject: String
+}
+
 final class KeychainStore {
     static let shared = KeychainStore()
 
@@ -44,12 +50,20 @@ final class KeychainStore {
     }
 
     @discardableResult
-    func saveDeletionReceipt(_ receipt: String) -> Bool {
-        save(receipt, account: deletionReceiptAccount)
+    func saveDeletionReceiptRecord(_ record: DeletionReceiptRecord) -> Bool {
+        guard let data = try? JSONEncoder().encode(record),
+              let encoded = String(data: data, encoding: .utf8) else {
+            return false
+        }
+        return save(encoded, account: deletionReceiptAccount)
     }
 
-    func loadDeletionReceipt() -> String? {
-        load(account: deletionReceiptAccount)
+    func loadDeletionReceiptRecord() -> DeletionReceiptRecord? {
+        guard let encoded = load(account: deletionReceiptAccount),
+              let data = encoded.data(using: .utf8) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(DeletionReceiptRecord.self, from: data)
     }
 
     @discardableResult

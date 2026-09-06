@@ -18,21 +18,26 @@ final class KeychainStoreLifecycleTests: XCTestCase {
 
     func testClearingLearningTokensPreservesDeletionReceipt() throws {
         XCTAssertTrue(keychain.saveTokens(access: "access", refresh: "refresh"))
-        XCTAssertTrue(keychain.saveDeletionReceipt("receipt"))
+        let record = DeletionReceiptRecord(
+            receipt: "receipt", requestID: "request-1", accountSubject: "subject-1"
+        )
+        XCTAssertTrue(keychain.saveDeletionReceiptRecord(record))
 
         XCTAssertTrue(keychain.clear())
 
         XCTAssertNil(keychain.loadTokens())
-        XCTAssertEqual(keychain.loadDeletionReceipt(), "receipt")
+        XCTAssertEqual(keychain.loadDeletionReceiptRecord(), record)
     }
 
     func testClearingDeletionReceiptPreservesLearningTokens() throws {
         XCTAssertTrue(keychain.saveTokens(access: "access", refresh: "refresh"))
-        XCTAssertTrue(keychain.saveDeletionReceipt("receipt"))
+        XCTAssertTrue(keychain.saveDeletionReceiptRecord(DeletionReceiptRecord(
+            receipt: "receipt", requestID: "request-1", accountSubject: "subject-1"
+        )))
 
         XCTAssertTrue(keychain.clearDeletionReceipt())
 
-        XCTAssertNil(keychain.loadDeletionReceipt())
+        XCTAssertNil(keychain.loadDeletionReceiptRecord())
         XCTAssertEqual(keychain.loadTokens(), AuthTokens(access: "access", refresh: "refresh"))
     }
 }
