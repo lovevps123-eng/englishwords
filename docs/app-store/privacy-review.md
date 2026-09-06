@@ -56,17 +56,17 @@
 
 ### 必须补齐／验证
 
-- [ ] 对外发布并验证无需登录、HTTPS 可访问的隐私政策与支持页面。App 已配置 `https://senior.dafang-edu.com/privacy` 和 `https://senior.dafang-edu.com/support`，并在注册页和设置页提供入口；仍须以发布环境实际访问结果为准。依据：[审核指南 5.1.1](https://developer.apple.com/app-store/review/guidelines/#privacy)。
+- [x] 已在未登录浏览器验证 `https://senior.dafang-edu.com/privacy` 和 `https://senior.dafang-edu.com/support` 可公开渲染；App 在注册页和设置页提供入口。政策内容仍须在 SLA／留存规则确认后定稿。依据：[审核指南 5.1.1](https://developer.apple.com/app-store/review/guidelines/#privacy)。
 - [ ] 在隔离环境验证已实现的账号生命周期全流程：App 内注册申请、管理员审批、账号重新验证、注销申请／撤回、回执查询及完成后的本地清理。生产删除策略未启用前，不能把代码存在写成线上已可用。依据：[Apple 账号删除指引](https://developer.apple.com/support/offering-account-deletion-in-your-app/)。
 - [ ] 核对注销清单覆盖的账号关联数据，并确认审计、支付、备份等数据的保留／清理规则；当前已实现注销队列和后台处理流程，但保留规则与生产执行结果仍须确认，不能承诺未验证的彻底删除范围。
-- [ ] 新源码已包含 `PrivacyInfo.xcprivacy` 及 UserDefaults 所需理由；仍需检查最终 Archive 的隐私报告与第三方依赖声明。参考：[Apple Required Reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)。
-- [ ] 确认运营主体、版权归属、正式联系渠道和政策生效日期。审核联系人姓名不是法律主体／权利归属证明。
+- [x] 导出 IPA 已核对 `PrivacyInfo.xcprivacy`，UserDefaults 所需理由为 `CA92.1`；依赖发生变化时仍须重新检查。参考：[Apple Required Reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)。
+- [ ] 运营主体和版权已按用户确认使用 `shaofei Ma（韶飞 麻）`；仍须确认政策生效日期及最终正式联系信息。
 - [ ] 核对实际生产服务商、处理地区、访问日志用途／期限、数据库保留策略和备份生命周期，再定稿安全日志的隐私分类。
 - [ ] 核实词典、例句、文章和译文的使用及商店截图展示权。服务端能返回内容不等于已证明出版或展示授权。
 
 ### 本轮不执行
 
-不发布政策、不填写／发布 Apple 隐私标签、不改生产数据清理策略、不实际删除账号、不添加或提交新构建、不更改销售地区和价格。
+仍不填写／发布 Apple 隐私标签，不开启生产注销、不实际删除账号，不上传构建或提交 App Review，不更改销售地区和价格。
 
 ## 定稿条件
 

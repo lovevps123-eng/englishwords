@@ -22,9 +22,18 @@
 
 ## 文案与隐私核对
 
-中文文案长度：名称 18、副标题 13、推广文本 59、关键词 35；描述长度由校验脚本按当前文案重新计算。结构化 JSON 可解析，描述正文与 Markdown 分区对应。支持／隐私 URL 已与 App 配置一致，版权仍保留为空。
+中文文案长度：名称 18、副标题 13、推广文本 59、关键词 35；描述长度由校验脚本按当前文案重新计算。结构化 JSON 可解析，描述正文与 Markdown 分区对应。支持／隐私 URL 已与 App 配置一致，版权已按用户确认填写为 `2026 shaofei Ma`。
 
-当前源码已包含 App 内注册审批、账号注销／撤回／回执查询、隐私／支持入口及 `PrivacyInfo.xcprivacy`。材料仍区分“登出”与“注销”，也没有承诺未知的数据保存时限。上述新增流程尚需在隔离环境和最终 Archive 中完成发布前验证。
+当前源码已包含 App 内注册审批、账号注销／撤回／回执查询、隐私／支持入口及 `PrivacyInfo.xcprivacy`。材料仍区分“登出”与“注销”，也没有承诺未知的数据保存时限。隔离 HTTP／PostgreSQL／Redis／worker 生命周期验证已通过（后端提交 `682cbae`，25 个 PostgreSQL 用例及 live smoke 通过）；iOS 全套 104 个测试与构建已通过。这些证据不等于生产注销已启用。
+
+## 生产与导出验证
+
+- 生产已部署提交 `98139df`，数据库迁移为 `20260905_0002`；核对时有 5 个 active users，账号注销开关保持 `false`。
+- 容器内 `/health` 返回的 `status`、`db`、`redis` 均为 `ok`。
+- 公网 `/privacy` 与 `/support` 已通过未登录浏览器完成渲染验证；隐私政策中的 SLA／留存规则仍待定稿。
+- `AppStoreExport/EnglishWords.ipa` 已在本地成功导出。可访问证书链的提升权限环境中，`codesign --verify --deep --strict` 通过；签名为 Apple Distribution `shaofei Ma`，Team ID `9H47USBKK4`。
+- 导出包版本为 1.0（build 1）；`PrivacyInfo.xcprivacy` 中 UserDefaults 理由 `CA92.1` 已核对。
+- App Store Connect 登录已恢复，Love English 1.0 为 `Prepare for Submission`。中文推广文本、512 字描述、关键词、支持 URL、版权 `2026 shaofei Ma` 及审核联系邮箱已保存；最终 Save 不可用且 Add for Review 恢复可用，页面无错误。
 
 隐私政策属于技术事实草稿，不是法律意见或最终正式政策。阻塞项完整列于 `privacy-review.md`，需结合最终生产配置与发布地区完成确认。
 
@@ -42,4 +51,4 @@ git diff --check
 
 ## 未执行
 
-未提交／推送本目录材料，未写入 App Store Connect，未发布网站或 Apple 隐私标签，未修改生产删除策略，未提交新归档或 App Review。
+截图和 IPA 尚未上传 App Store Connect，未发布 Apple 隐私标签，也未提交 App Review；当前仅保存了部分元数据草稿。生产注销开关仍为 `false`，未执行真实账号删除。

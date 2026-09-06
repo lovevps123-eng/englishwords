@@ -1,6 +1,6 @@
 # Love English 商店文案草稿
 
-状态：本地待审核，尚未写入 App Store Connect。适用：iOS 1.0。
+状态：App Store Connect `Prepare for Submission`；中文推广文本、描述、关键词、支持网址、版权和审核联系邮箱已保存为草稿，截图与新构建尚未上传，也未提交审核。适用：iOS 1.0。
 
 ## 名称
 
@@ -45,9 +45,9 @@ Love English 将背词、例句跟读与英语阅读放在一起，帮助你安�
 
 - 主要语言：简体中文。
 - 主要类别：教育；尚未更改线上类别。
-- 版权建议：`2026 shaofei ma`；需由权利人确认后填写，审核联系人不是版权归属证明。
-- 支持网址：`https://senior.dafang-edu.com/support`；仍需发布并验证无需登录访问。
-- 隐私政策网址：`https://senior.dafang-edu.com/privacy`；仍需定稿、发布并验证无需登录访问。
+- 版权：`2026 shaofei Ma`（韶飞 麻），已由用户确认。
+- 支持网址：`https://senior.dafang-edu.com/support`；已验证无需登录访问。
+- 隐私政策网址：`https://senior.dafang-edu.com/privacy`；已验证无需登录访问，SLA／留存规则仍待定稿。
 - 营销网址、App 预览视频、促销承诺：本轮不设置。
 - 价格、销售地区及年龄分级：保持未决；不从文案或测试账号的“高三”年级推断。
 

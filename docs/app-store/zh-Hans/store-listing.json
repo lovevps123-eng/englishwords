@@ -1,5 +1,5 @@
 {
-  "status": "local_draft_not_submitted",
+  "status": "app_store_connect_draft_partially_saved",
   "appStoreAppId": "6807782789",
   "bundleId": "com.masf.englishwords",
   "version": "1.0",
@@ -11,7 +11,7 @@
   "descriptionSource": "store-listing.md#描述",
   "supportUrl": "https://senior.dafang-edu.com/support",
   "privacyPolicyUrl": "https://senior.dafang-edu.com/privacy",
-  "copyright": null,
+  "copyright": "2026 shaofei Ma",
   "requiresSignIn": true,
   "reviewCredentialsIncluded": false
 }
