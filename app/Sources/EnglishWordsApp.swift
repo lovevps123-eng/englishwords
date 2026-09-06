@@ -6,17 +6,30 @@ import SwiftData
 struct EnglishWordsApp: App {
     let modelContainer: ModelContainer
     @State private var appStore = AppStore()
-    @State private var authStore = AuthStore()
-    @State private var accountLifecycleStore = AccountLifecycleStore()
+    @State private var authStore: AuthStore
+    @State private var accountLifecycleStore: AccountLifecycleStore
     @State private var vocabStore: VocabStore
-    @State private var settingsStore = SettingsStore()
+    @State private var settingsStore: SettingsStore
+    @State private var accountDataCleaner: LocalAccountDataCleaner
     @State private var readingStore = ReadingStore()
 
     init() {
         do {
             let container = try ModelContainer(for: Schema([CachedWord.self, PendingResult.self]))
             modelContainer = container
-            _vocabStore = State(initialValue: VocabStore(modelContext: container.mainContext))
+            let authStore = AuthStore()
+            let settingsStore = SettingsStore()
+            let vocabStore = VocabStore(modelContext: container.mainContext)
+            let cleaner = LocalAccountDataCleaner(
+                vocabStore: vocabStore,
+                settingsStore: settingsStore,
+                authStore: authStore
+            )
+            _authStore = State(initialValue: authStore)
+            _settingsStore = State(initialValue: settingsStore)
+            _vocabStore = State(initialValue: vocabStore)
+            _accountDataCleaner = State(initialValue: cleaner)
+            _accountLifecycleStore = State(initialValue: AccountLifecycleStore(dataCleaner: cleaner))
         } catch {
             fatalError("无法创建 SwiftData 容器: \(error)")
         }
@@ -25,7 +38,9 @@ struct EnglishWordsApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authStore.isAuthenticated {
+                if case .deletionCompleted = accountLifecycleStore.state {
+                    NavigationStack { AccountManagementView() }
+                } else if authStore.isAuthenticated {
                     RootView()
                 } else {
                     LoginView()
@@ -36,6 +51,7 @@ struct EnglishWordsApp: App {
             .environment(accountLifecycleStore)
             .environment(vocabStore)
             .environment(settingsStore)
+            .environment(accountDataCleaner)
             .environment(readingStore)
             .task {
                 await performStartupSyncIfNeeded()

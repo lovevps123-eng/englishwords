@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(AuthStore.self) private var authStore
     @Environment(VocabStore.self) private var vocabStore
+    @Environment(LocalAccountDataCleaner.self) private var accountDataCleaner
 
     @State private var showLogoutConfirm = false
     @State private var queueRefreshErrorMessage: String?
@@ -81,6 +82,12 @@ struct SettingsView: View {
                 }
                 #endif
 
+                Section("账号") {
+                    NavigationLink("账号与隐私") {
+                        AccountManagementView()
+                    }
+                }
+
                 Section {
                     Button("登出", role: .destructive) {
                         showLogoutConfirm = true
@@ -97,9 +104,7 @@ struct SettingsView: View {
                     // 更严重的是旧账号未同步的 PendingResult 会用新账号的 token 提交，
                     // 污染新账号的服务端 SRS 数据（不可逆）。区别于 401 强制登出（同账号 token
                     // 过期），那条路径不清数据，见 VocabStore.clearAllLocalData() 注释。
-                    vocabStore.clearAllLocalData()
-                    clearAllCheckinState()
-                    authStore.logout()
+                    accountDataCleaner.clearForExplicitLogout()
                 }
                 Button("取消", role: .cancel) {}
             }
@@ -139,15 +144,6 @@ struct SettingsView: View {
     }
 #endif
 
-    /// 按前缀 "checkin." 遍历删除 TodayView 的跟读/阅读打卡 UserDefaults key（各日期各一条）。
-    private func clearAllCheckinState() {
-        let defaults = UserDefaults.standard
-        let keysToRemove = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix("checkin.") }
-        for key in keysToRemove {
-            defaults.removeObject(forKey: key)
-        }
-    }
-
     private func refreshQueueAfterSettingsChange() async {
         do {
             try await vocabStore.refreshQueue(tier: settings.tier, newLimit: settings.dailyNewLimit)
@@ -164,9 +160,17 @@ struct SettingsView: View {
         for: Schema([CachedWord.self, PendingResult.self]),
         configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
     )
+    let settings = SettingsStore(defaults: UserDefaults(suiteName: "preview")!)
+    let auth = AuthStore()
+    let vocab = VocabStore(modelContext: container.mainContext)
+    let cleaner = LocalAccountDataCleaner(
+        vocabStore: vocab, settingsStore: settings, authStore: auth
+    )
     return SettingsView()
         .modelContainer(container)
-        .environment(SettingsStore(defaults: UserDefaults(suiteName: "preview")!))
-        .environment(AuthStore())
-        .environment(VocabStore(modelContext: container.mainContext))
+        .environment(settings)
+        .environment(auth)
+        .environment(vocab)
+        .environment(cleaner)
+        .environment(AccountLifecycleStore())
 }

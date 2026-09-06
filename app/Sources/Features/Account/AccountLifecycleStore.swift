@@ -5,8 +5,22 @@ enum AccountLifecycleScreenState: Equatable {
     case signedOut
     case authenticating
     case status(AccountStatusResponse)
+    case receiptStatus(ReceiptStatusResponse)
+    case deletionCompleted(ReceiptStatusResponse)
     case submitting
     case failure(String)
+}
+
+protocol DeletionReceiptStoring: AnyObject {
+    @discardableResult func saveDeletionReceipt(_ receipt: String) -> Bool
+    func loadDeletionReceipt() -> String?
+    @discardableResult func clearDeletionReceipt() -> Bool
+}
+
+extension KeychainStore: DeletionReceiptStoring {}
+
+protocol AccountDataCleaning: AnyObject {
+    func clearAfterConfirmedDeletion()
 }
 
 protocol AccountLifecycleClient {
@@ -15,6 +29,11 @@ protocol AccountLifecycleClient {
     func register(_ request: RegistrationRequest) async throws -> RegistrationResponse
     func createManagementSession(_ request: AccountSessionRequest) async throws -> AccountSessionResponse
     func loadAccountStatus(managementToken: String) async throws -> AccountStatusResponse
+    func requestDeletion(
+        _ command: DeletionRequestCommand, managementToken: String
+    ) async throws -> DeletionRequestResponse
+    func cancelDeletion(managementToken: String) async throws -> CancellationResponse
+    func loadReceiptStatus(receipt: String) async throws -> ReceiptStatusResponse
 }
 
 extension APIClient: AccountLifecycleClient {
@@ -41,6 +60,33 @@ extension APIClient: AccountLifecycleClient {
     func loadAccountStatus(managementToken: String) async throws -> AccountStatusResponse {
         try await get("/api/account/status", credential: .management(managementToken))
     }
+
+    func requestDeletion(
+        _ command: DeletionRequestCommand, managementToken: String
+    ) async throws -> DeletionRequestResponse {
+        try await post(
+            "/api/account/deletion-requests",
+            body: command,
+            credential: .management(managementToken)
+        )
+    }
+
+    func cancelDeletion(managementToken: String) async throws -> CancellationResponse {
+        struct EmptyBody: Encodable {}
+        return try await post(
+            "/api/account/deletion-requests/cancel",
+            body: EmptyBody(),
+            credential: .management(managementToken)
+        )
+    }
+
+    func loadReceiptStatus(receipt: String) async throws -> ReceiptStatusResponse {
+        try await post(
+            "/api/account/deletion-receipt/status",
+            body: DeletionReceiptStatusRequest(receipt: receipt),
+            credential: .none
+        )
+    }
 }
 
 @MainActor
@@ -52,6 +98,9 @@ final class AccountLifecycleStore {
     private(set) var smsMessage: String?
     private(set) var isLoadingRegions = false
     private(set) var isSendingSMS = false
+    private(set) var isDeletionInFlight = false
+    private(set) var hasDeletionReceipt: Bool
+    private(set) var deletionMessage: String?
 
     var registrationPhone = ""
     var registrationPassword = ""
@@ -66,21 +115,41 @@ final class AccountLifecycleStore {
     var managementPhone = ""
     var managementPassword = ""
     var managementChallengeToken = ""
+    var deletionConfirmation = ""
+    var deletionReason = ""
 
     private let client: AccountLifecycleClient
+    private let receiptStore: DeletionReceiptStoring
+    private let dataCleaner: AccountDataCleaning?
     private let now: () -> Date
     private var managementToken: String?
     private var managementExpiresAt: Date?
     private var registrationInFlight = false
     private var managementInFlight = false
 
-    init(client: AccountLifecycleClient = APIClient.shared, now: @escaping () -> Date = Date.init) {
+    init(
+        client: AccountLifecycleClient = APIClient.shared,
+        receiptStore: DeletionReceiptStoring = KeychainStore.shared,
+        dataCleaner: AccountDataCleaning? = nil,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.client = client
+        self.receiptStore = receiptStore
+        self.dataCleaner = dataCleaner
         self.now = now
+        self.hasDeletionReceipt = receiptStore.loadDeletionReceipt() != nil
     }
 
     var isRegistering: Bool { registrationInFlight }
     var isManaging: Bool { managementInFlight }
+
+    var currentDeletionStatus: DeletionRequestStatus? {
+        switch state {
+        case .status(let response): response.deletionRequest?.status
+        case .receiptStatus(let response), .deletionCompleted(let response): response.status
+        default: nil
+        }
+    }
 
     func loadRegions() async {
         guard regions.isEmpty, !isLoadingRegions else { return }
@@ -223,6 +292,108 @@ final class AccountLifecycleStore {
         }
     }
 
+    func requestDeletion() async {
+        guard !isDeletionInFlight else { return }
+        guard case .status(let accountResponse) = state else {
+            state = .failure("请先重新验证账号")
+            return
+        }
+        guard accountResponse.deletionPolicy.enabled,
+              let policyVersion = accountResponse.deletionPolicy.policyVersion else {
+            state = .failure("账号注销功能尚未启用")
+            return
+        }
+        guard deletionConfirmation == "DELETE_ACCOUNT" else {
+            state = .failure("请输入 DELETE_ACCOUNT 确认注销")
+            return
+        }
+        guard let token = validManagementToken() else { return }
+
+        isDeletionInFlight = true
+        deletionMessage = nil
+        defer { isDeletionInFlight = false }
+
+        do {
+            let response = try await client.requestDeletion(
+                DeletionRequestCommand(
+                    confirmation: "DELETE_ACCOUNT",
+                    policyVersion: policyVersion,
+                    reason: nilIfBlank(deletionReason)
+                ),
+                managementToken: token
+            )
+            if let receipt = response.receipt {
+                guard receiptStore.saveDeletionReceipt(receipt) else {
+                    state = .failure("无法安全保存注销回执，请重试")
+                    return
+                }
+                hasDeletionReceipt = true
+            } else if receiptStore.loadDeletionReceipt() == nil {
+                state = .failure("未找到注销回执，请联系管理员")
+                return
+            }
+            hasDeletionReceipt = true
+            deletionConfirmation = ""
+            deletionReason = ""
+            deletionMessage = response.idempotent ? "注销申请已存在" : "注销申请已提交"
+            updateDeletionStatus(summary(from: response), in: accountResponse)
+        } catch {
+            state = .failure(message(for: error))
+        }
+    }
+
+    func cancelDeletion() async {
+        guard !isDeletionInFlight else { return }
+        guard case .status(let accountResponse) = state,
+              accountResponse.deletionRequest?.status == .requested else {
+            state = .failure("仅已收到、尚未处理的申请可以撤回")
+            return
+        }
+        guard let token = validManagementToken() else { return }
+
+        isDeletionInFlight = true
+        deletionMessage = nil
+        defer { isDeletionInFlight = false }
+        do {
+            _ = try await client.cancelDeletion(managementToken: token)
+            deletionMessage = "注销申请已撤回"
+            try await loadStatus(using: token)
+        } catch {
+            state = .failure(message(for: error))
+        }
+    }
+
+    func refreshReceiptStatus() async {
+        guard !isDeletionInFlight else { return }
+        guard let receipt = receiptStore.loadDeletionReceipt(), !receipt.isEmpty else {
+            hasDeletionReceipt = false
+            state = .failure("本机没有可查询的注销回执")
+            return
+        }
+
+        isDeletionInFlight = true
+        deletionMessage = nil
+        defer { isDeletionInFlight = false }
+        do {
+            let response = try await client.loadReceiptStatus(receipt: receipt)
+            guard response.status == .completed else {
+                state = .receiptStatus(response)
+                return
+            }
+            guard let dataCleaner else {
+                state = .failure("本地账号数据清理尚未就绪，请稍后重试")
+                return
+            }
+            dataCleaner.clearAfterConfirmedDeletion()
+            clearManagementSession()
+            clearManagementSecrets()
+            hasDeletionReceipt = false
+            state = .deletionCompleted(response)
+        } catch {
+            state = .failure(message(for: error))
+        }
+    }
+
     func dismissManagement() {
         clearManagementSession()
         clearManagementSecrets()
@@ -245,6 +416,39 @@ final class AccountLifecycleStore {
 
     private func loadStatus(using token: String) async throws {
         state = .status(try await client.loadAccountStatus(managementToken: token))
+    }
+
+    private func validManagementToken() -> String? {
+        guard let managementToken,
+              let managementExpiresAt,
+              now() < managementExpiresAt else {
+            clearManagementSession()
+            state = .failure("账号管理会话已过期，请重新验证")
+            return nil
+        }
+        return managementToken
+    }
+
+    private func summary(from response: DeletionRequestResponse) -> DeletionStatusSummary {
+        DeletionStatusSummary(
+            status: response.status,
+            requestedAt: response.requestedAt,
+            dueAt: response.dueAt,
+            completedAt: response.completedAt,
+            cancelledAt: response.cancelledAt,
+            failureCategory: nil
+        )
+    }
+
+    private func updateDeletionStatus(
+        _ deletion: DeletionStatusSummary, in accountResponse: AccountStatusResponse
+    ) {
+        state = .status(AccountStatusResponse(
+            accountStatus: deletion.status == .cancelled ? .active : .deleting,
+            rejectionReason: accountResponse.rejectionReason,
+            deletionRequest: deletion,
+            deletionPolicy: accountResponse.deletionPolicy
+        ))
     }
 
     private func registrationRequest() -> RegistrationRequest? {
@@ -324,6 +528,12 @@ final class AccountLifecycleStore {
                 return "请求过于频繁，请稍后再试"
             case "ACCOUNT_SELF_SERVICE_UNAVAILABLE":
                 return "此账号不能使用自助账号管理"
+            case "ACCOUNT_DELETION_NOT_ENABLED":
+                return "账号注销功能尚未启用"
+            case "DELETION_RECEIPT_NOT_FOUND":
+                return "注销回执无效或已过期"
+            case "ACCOUNT_DELETION_REQUEST_NOT_CANCELLABLE":
+                return "申请已开始处理，不能撤回"
             default:
                 return apiError.errorDescription ?? "请求失败，请稍后重试"
             }

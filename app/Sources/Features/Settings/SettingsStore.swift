@@ -51,4 +51,55 @@ final class SettingsStore {
     func resetServerBaseURL() {
         configuration.resetServerOverride()
     }
+
+    func clearPersonalSettings() {
+        tier = Self.tierDefault
+        dailyNewLimit = Self.dailyNewLimitDefault
+        defaults.removeObject(forKey: Keys.tier)
+        defaults.removeObject(forKey: Keys.dailyNewLimit)
+    }
+}
+
+@Observable
+final class LocalAccountDataCleaner: AccountDataCleaning {
+    private let vocabStore: VocabStore
+    private let settingsStore: SettingsStore
+    private let authStore: AuthStore
+    private let receiptStore: DeletionReceiptStoring
+    private let defaults: UserDefaults
+
+    init(
+        vocabStore: VocabStore,
+        settingsStore: SettingsStore,
+        authStore: AuthStore,
+        receiptStore: DeletionReceiptStoring = KeychainStore.shared,
+        defaults: UserDefaults = .standard
+    ) {
+        self.vocabStore = vocabStore
+        self.settingsStore = settingsStore
+        self.authStore = authStore
+        self.receiptStore = receiptStore
+        self.defaults = defaults
+    }
+
+    func clearForExplicitLogout() {
+        vocabStore.clearAllLocalData()
+        clearCheckinState()
+        authStore.logout()
+    }
+
+    func clearAfterConfirmedDeletion() {
+        vocabStore.clearAllLocalData()
+        clearCheckinState()
+        settingsStore.clearPersonalSettings()
+        authStore.logout()
+        receiptStore.clearDeletionReceipt()
+    }
+
+    private func clearCheckinState() {
+        let keys = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix("checkin.") }
+        for key in keys {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }
