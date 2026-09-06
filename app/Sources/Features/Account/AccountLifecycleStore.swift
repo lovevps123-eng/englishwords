@@ -26,7 +26,7 @@ protocol LearningCredentialProviding: AnyObject {
 extension KeychainStore: LearningCredentialProviding {}
 
 protocol AccountDataCleaning: AnyObject {
-    func clearAfterConfirmedDeletion()
+    func clearAfterConfirmedDeletion() throws
 }
 
 protocol AccountLifecycleClient {
@@ -107,6 +107,7 @@ final class AccountLifecycleStore {
     private(set) var isDeletionInFlight = false
     private(set) var hasDeletionReceipt: Bool
     private(set) var deletionMessage: String?
+    private(set) var needsDeletionCleanupRetry = false
 
     var registrationPhone = ""
     var registrationPassword = ""
@@ -133,6 +134,13 @@ final class AccountLifecycleStore {
     private var managementExpiresAt: Date?
     private var registrationInFlight = false
     private var managementInFlight = false
+    private var pendingDeletionReceipt: PendingDeletionReceipt?
+
+    private struct PendingDeletionReceipt {
+        let record: DeletionReceiptRecord
+        let response: DeletionRequestResponse
+        let accountResponse: AccountStatusResponse
+    }
 
     init(
         client: AccountLifecycleClient = APIClient.shared,
@@ -151,6 +159,7 @@ final class AccountLifecycleStore {
 
     var isRegistering: Bool { registrationInFlight }
     var isManaging: Bool { managementInFlight }
+    var canRetryDeletionReceiptSave: Bool { pendingDeletionReceipt != nil }
 
     var currentDeletionStatus: DeletionRequestStatus? {
         switch state {
@@ -303,6 +312,10 @@ final class AccountLifecycleStore {
 
     func requestDeletion() async {
         guard !isDeletionInFlight else { return }
+        guard pendingDeletionReceipt == nil else {
+            state = .failure("注销回执尚未安全保存，请先重试保存")
+            return
+        }
         guard case .status(let accountResponse) = state else {
             state = .failure("请先重新验证账号")
             return
@@ -347,10 +360,14 @@ final class AccountLifecycleStore {
                     accountSubject: accountSubject
                 )
                 guard receiptStore.saveDeletionReceiptRecord(record) else {
-                    state = .failure("无法安全保存注销回执，请重试")
+                    pendingDeletionReceipt = PendingDeletionReceipt(
+                        record: record,
+                        response: response,
+                        accountResponse: accountResponse
+                    )
+                    state = .failure("无法安全保存注销回执，请点击下方按钮重试保存")
                     return
                 }
-                hasDeletionReceipt = true
             } else {
                 guard let record = receiptStore.loadDeletionReceiptRecord(),
                       record.requestID == response.id,
@@ -359,14 +376,20 @@ final class AccountLifecycleStore {
                     return
                 }
             }
-            hasDeletionReceipt = true
-            deletionConfirmation = ""
-            deletionReason = ""
-            deletionMessage = response.idempotent ? "注销申请已存在" : "注销申请已提交"
-            updateDeletionStatus(summary(from: response), in: accountResponse)
+            completeDeletionSubmission(response, accountResponse: accountResponse)
         } catch {
             state = .failure(message(for: error))
         }
+    }
+
+    func retryPersistDeletionReceipt() {
+        guard !isDeletionInFlight, let pending = pendingDeletionReceipt else { return }
+        guard receiptStore.saveDeletionReceiptRecord(pending.record) else {
+            state = .failure("无法安全保存注销回执，请点击下方按钮重试保存")
+            return
+        }
+        pendingDeletionReceipt = nil
+        completeDeletionSubmission(pending.response, accountResponse: pending.accountResponse)
     }
 
     func cancelDeletion() async {
@@ -413,10 +436,18 @@ final class AccountLifecycleStore {
                 state = .failure("本地账号数据清理尚未就绪，请稍后重试")
                 return
             }
-            dataCleaner.clearAfterConfirmedDeletion()
+            do {
+                try dataCleaner.clearAfterConfirmedDeletion()
+            } catch {
+                hasDeletionReceipt = true
+                needsDeletionCleanupRetry = true
+                state = .failure("服务器已完成注销，但本机数据清理未完成，请重试")
+                return
+            }
             clearManagementSession()
             clearManagementSecrets()
             hasDeletionReceipt = false
+            needsDeletionCleanupRetry = false
             state = .deletionCompleted(response)
         } catch {
             state = .failure(message(for: error))
@@ -528,6 +559,17 @@ final class AccountLifecycleStore {
             cancelledAt: response.cancelledAt,
             failureCategory: nil
         )
+    }
+
+    private func completeDeletionSubmission(
+        _ response: DeletionRequestResponse,
+        accountResponse: AccountStatusResponse
+    ) {
+        hasDeletionReceipt = true
+        deletionConfirmation = ""
+        deletionReason = ""
+        deletionMessage = response.idempotent ? "注销申请已存在" : "注销申请已提交"
+        updateDeletionStatus(summary(from: response), in: accountResponse)
     }
 
     private func updateDeletionStatus(

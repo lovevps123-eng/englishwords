@@ -83,17 +83,21 @@ final class LocalAccountDataCleaner: AccountDataCleaning {
     }
 
     func clearForExplicitLogout() {
-        vocabStore.clearAllLocalData()
+        try? vocabStore.clearAllLocalData()
         clearCheckinState()
         authStore.logout()
     }
 
-    func clearAfterConfirmedDeletion() {
-        vocabStore.clearAllLocalData()
+    func clearAfterConfirmedDeletion() throws {
+        try vocabStore.clearAllLocalData()
         clearCheckinState()
         settingsStore.clearPersonalSettings()
-        authStore.logout()
-        receiptStore.clearDeletionReceipt()
+        guard authStore.logout() else {
+            throw LocalAccountDataCleanupError.learningCredentials
+        }
+        guard receiptStore.clearDeletionReceipt() else {
+            throw LocalAccountDataCleanupError.deletionReceipt
+        }
     }
 
     private func clearCheckinState() {
@@ -102,4 +106,9 @@ final class LocalAccountDataCleaner: AccountDataCleaning {
             defaults.removeObject(forKey: key)
         }
     }
+}
+
+private enum LocalAccountDataCleanupError: Error {
+    case learningCredentials
+    case deletionReceipt
 }

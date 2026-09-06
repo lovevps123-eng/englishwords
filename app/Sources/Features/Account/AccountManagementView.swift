@@ -39,6 +39,14 @@ struct AccountManagementView: View {
                         }
                     }
 
+                    if store.canRetryDeletionReceiptSave {
+                        Section("注销回执") {
+                            Button("重试保存注销回执") {
+                                store.retryPersistDeletionReceipt()
+                            }
+                        }
+                    }
+
                     Section {
                         Button {
                             if store.validateManagementForChallenge() {

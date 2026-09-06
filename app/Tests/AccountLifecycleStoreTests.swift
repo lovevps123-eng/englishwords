@@ -171,15 +171,21 @@ private final class FakeLearningCredentialStore: LearningCredentialProviding {
 private final class FakeAccountDataCleaner: AccountDataCleaning {
     private(set) var clearCount = 0
     private let receiptStore: DeletionReceiptStoring?
+    var error: Error?
 
     init(receiptStore: DeletionReceiptStoring? = nil) {
         self.receiptStore = receiptStore
     }
 
-    func clearAfterConfirmedDeletion() {
+    func clearAfterConfirmedDeletion() throws {
         clearCount += 1
+        if let error { throw error }
         receiptStore?.clearDeletionReceipt()
     }
+}
+
+private enum FakeCleaningError: Error {
+    case failed
 }
 
 @MainActor
@@ -416,8 +422,22 @@ final class AccountLifecycleStoreTests: XCTestCase {
         XCTAssertEqual(receipts.savedRecords, [DeletionReceiptRecord(
             receipt: "receipt-1", requestID: "deletion-1", accountSubject: accountSubjectA
         )])
-        XCTAssertEqual(store.state, .failure("无法安全保存注销回执，请重试"))
+        XCTAssertTrue(store.canRetryDeletionReceiptSave)
+        XCTAssertEqual(store.state, .failure("无法安全保存注销回执，请点击下方按钮重试保存"))
         XCTAssertNil(store.currentDeletionStatus)
+
+        await store.requestDeletion()
+        XCTAssertEqual(client.deletionRequests.count, 1, "待保存回执存在时不得重新提交服务端注销申请")
+
+        receipts.saveSucceeds = true
+        store.retryPersistDeletionReceipt()
+
+        XCTAssertEqual(client.deletionRequests.count, 1, "重试保存不得再次提交服务端注销申请")
+        XCTAssertFalse(store.canRetryDeletionReceiptSave)
+        XCTAssertEqual(receipts.record, DeletionReceiptRecord(
+            receipt: "receipt-1", requestID: "deletion-1", accountSubject: accountSubjectA
+        ))
+        XCTAssertEqual(store.currentDeletionStatus, .requested)
     }
 
     func testIdempotentDeletionResponseUsesAlreadyPersistedReceipt() async {
@@ -513,6 +533,45 @@ final class AccountLifecycleStoreTests: XCTestCase {
         XCTAssertEqual(cleaner.clearCount, 1)
         XCTAssertNil(receipts.record)
         XCTAssertEqual(receipts.clearCount, 1)
+        XCTAssertFalse(store.hasDeletionReceipt)
+        XCTAssertEqual(store.state, .deletionCompleted(client.receiptStatusResponse))
+    }
+
+    func testCompletedReceiptKeepsReceiptAndAllowsRetryWhenLocalCleanupFails() async {
+        let client = FakeAccountLifecycleClient()
+        client.receiptStatusResponse = ReceiptStatusResponse(
+            status: .completed,
+            requestedAt: Date(timeIntervalSince1970: 1_000),
+            dueAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
+            cancelledAt: nil,
+            failureCategory: nil
+        )
+        let receipts = FakeDeletionReceiptStore()
+        let record = DeletionReceiptRecord(
+            receipt: "persisted-receipt", requestID: "deletion-1", accountSubject: accountSubjectA
+        )
+        receipts.record = record
+        let cleaner = FakeAccountDataCleaner(receiptStore: receipts)
+        cleaner.error = FakeCleaningError.failed
+        let store = AccountLifecycleStore(
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: FakeLearningCredentialStore(),
+            dataCleaner: cleaner
+        )
+
+        await store.refreshReceiptStatus()
+
+        XCTAssertTrue(store.hasDeletionReceipt)
+        XCTAssertEqual(receipts.record, record)
+        XCTAssertEqual(store.state, .failure("服务器已完成注销，但本机数据清理未完成，请重试"))
+
+        cleaner.error = nil
+        await store.refreshReceiptStatus()
+
+        XCTAssertEqual(cleaner.clearCount, 2)
+        XCTAssertNil(receipts.record)
         XCTAssertFalse(store.hasDeletionReceipt)
         XCTAssertEqual(store.state, .deletionCompleted(client.receiptStatusResponse))
     }

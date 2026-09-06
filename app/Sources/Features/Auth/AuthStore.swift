@@ -62,10 +62,12 @@ final class AuthStore {
         }
     }
 
-    func logout() {
-        keychain.clear()
+    @discardableResult
+    func logout() -> Bool {
+        guard keychain.clear() else { return false }
         isAuthenticated = false
         restrictedAccountStatus = nil
+        return true
     }
 
     static func restrictedStatus(forServerCode code: String?) -> AccountStatus? {

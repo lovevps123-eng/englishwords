@@ -40,6 +40,8 @@ struct EnglishWordsApp: App {
             Group {
                 if case .deletionCompleted = accountLifecycleStore.state {
                     NavigationStack { AccountManagementView() }
+                } else if accountLifecycleStore.needsDeletionCleanupRetry {
+                    NavigationStack { AccountManagementView() }
                 } else if authStore.isAuthenticated {
                     RootView()
                 } else {

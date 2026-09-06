@@ -2,6 +2,25 @@ import XCTest
 import SwiftData
 @testable import EnglishWords
 
+private final class FailingReceiptClearStore: DeletionReceiptStoring {
+    var record = DeletionReceiptRecord(
+        receipt: "receipt", requestID: "request-1", accountSubject: "subject-1"
+    )
+    private(set) var clearCount = 0
+
+    func saveDeletionReceiptRecord(_ record: DeletionReceiptRecord) -> Bool {
+        self.record = record
+        return true
+    }
+
+    func loadDeletionReceiptRecord() -> DeletionReceiptRecord? { record }
+
+    func clearDeletionReceipt() -> Bool {
+        clearCount += 1
+        return false
+    }
+}
+
 @MainActor
 final class SettingsStoreTests: XCTestCase {
     private var defaults: UserDefaults!
@@ -91,7 +110,7 @@ final class SettingsStoreTests: XCTestCase {
             defaults: defaults
         )
 
-        cleaner.clearAfterConfirmedDeletion()
+        try cleaner.clearAfterConfirmedDeletion()
 
         XCTAssertTrue(try context.fetch(FetchDescriptor<CachedWord>()).isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingResult>()).isEmpty)
@@ -105,5 +124,31 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertNil(keychain.loadTokens())
         XCTAssertNil(keychain.loadDeletionReceiptRecord())
         XCTAssertFalse(authStore.isAuthenticated)
+    }
+
+    func testConfirmedDeletionReportsReceiptClearFailureAndKeepsReceipt() throws {
+        let keychain = KeychainStore(service: "SettingsStoreTests.\(UUID().uuidString)")
+        let authStore = AuthStore(keychain: keychain)
+        let settings = SettingsStore(
+            defaults: defaults,
+            configuration: AppConfiguration(defaults: defaults, environment: .debug)
+        )
+        let container = try ModelContainer(
+            for: Schema([CachedWord.self, PendingResult.self]),
+            configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
+        )
+        let receiptStore = FailingReceiptClearStore()
+        let record = receiptStore.record
+        let cleaner = LocalAccountDataCleaner(
+            vocabStore: VocabStore(modelContext: ModelContext(container)),
+            settingsStore: settings,
+            authStore: authStore,
+            receiptStore: receiptStore,
+            defaults: defaults
+        )
+
+        XCTAssertThrowsError(try cleaner.clearAfterConfirmedDeletion())
+        XCTAssertEqual(receiptStore.clearCount, 1)
+        XCTAssertEqual(receiptStore.record, record)
     }
 }

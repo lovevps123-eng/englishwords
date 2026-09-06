@@ -91,16 +91,16 @@ final class VocabStore {
     /// 要留着，等用户重新登录后 sync() 补交；但如果换了账号（主动登出后另一人登录），
     /// A 账号的 PendingResult 会带着 B 账号的新 token 提交，污染 B 的服务端 SRS 数据——
     /// 这是不可逆操作，所以主动登出必须在 authStore.logout() 之前把两张表清空。
-    func clearAllLocalData() {
-        let words = (try? modelContext.fetch(FetchDescriptor<CachedWord>())) ?? []
+    func clearAllLocalData() throws {
+        let words = try modelContext.fetch(FetchDescriptor<CachedWord>())
         for word in words {
             modelContext.delete(word)
         }
-        let pending = (try? modelContext.fetch(FetchDescriptor<PendingResult>())) ?? []
+        let pending = try modelContext.fetch(FetchDescriptor<PendingResult>())
         for item in pending {
             modelContext.delete(item)
         }
-        try? modelContext.save()
+        try modelContext.save()
     }
 
     /// 今日进度 = 当前缓存队列（refreshQueue 覆盖式写入，天然对应"今日"队列）中已作答 / 总数

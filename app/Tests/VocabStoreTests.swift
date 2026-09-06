@@ -200,7 +200,7 @@ final class VocabStoreTests: XCTestCase {
         XCTAssertEqual(try context.fetch(FetchDescriptor<CachedWord>()).count, 1)
         XCTAssertEqual(try context.fetch(FetchDescriptor<PendingResult>()).count, 1)
 
-        store.clearAllLocalData()
+        try store.clearAllLocalData()
 
         XCTAssertTrue(try context.fetch(FetchDescriptor<CachedWord>()).isEmpty, "clearAllLocalData 后 CachedWord 应全空")
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingResult>()).isEmpty, "clearAllLocalData 后 PendingResult 应全空")
