@@ -1,0 +1,18 @@
+{
+  "status": "local_draft_not_uploaded",
+  "sourceCommit": "4bbff23f8eca67e828f3d1b5be0abd1c4e26eadf",
+  "configuration": "Release",
+  "device": "iPhone 17 Pro Max Simulator",
+  "locale": "zh-Hans",
+  "width": 1320,
+  "height": 2868,
+  "format": "jpeg",
+  "hasAlpha": false,
+  "screenshots": [
+    {"file": "01-today.jpeg", "sha256": "8ff0c1f16b971dd04aa50420d3136375e15336a307e9132a0cf8e23d353ca170"},
+    {"file": "02-vocabulary.jpeg", "sha256": "0c29fb37de0e5468ae860d6c3a012df7e733eacf2e5219b62bc9db75cf5ff3a0"},
+    {"file": "03-speaking.jpeg", "sha256": "595184d73f43e2da1ff154e8ee0d2ccae1769b787d968770685446bbe837c744"},
+    {"file": "04-reading-list.jpeg", "sha256": "6208b82316106111cf3e26e5f1aba061181b08bb6a658c171609b32e850b9063"},
+    {"file": "05-reading-detail.jpeg", "sha256": "2af663782a4c896dc593a55b23097a4ccdf6bd2cf8a3c0aac0c448134cc3dc83"}
+  ]
+}

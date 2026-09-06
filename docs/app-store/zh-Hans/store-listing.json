@@ -1,0 +1,17 @@
+{
+  "status": "local_draft_not_submitted",
+  "appStoreAppId": "6807782789",
+  "bundleId": "com.masf.englishwords",
+  "version": "1.0",
+  "locale": "zh-Hans",
+  "name": "Love English 每日学英语",
+  "subtitle": "背单词、练跟读、读英语文章",
+  "promotionalText": "从每天的词汇练习开始，把背词、例句跟读和英语阅读连起来。用单词卡片检查掌握程度，在阅读中收藏生词，让复习融入日常学习。",
+  "keywords": "英语,单词,背单词,词汇,复习,跟读,英语阅读,例句,生词本,高中英语",
+  "descriptionSource": "store-listing.md#描述",
+  "supportUrl": "https://senior.dafang-edu.com/support",
+  "privacyPolicyUrl": "https://senior.dafang-edu.com/privacy",
+  "copyright": null,
+  "requiresSignIn": true,
+  "reviewCredentialsIncluded": false
+}
