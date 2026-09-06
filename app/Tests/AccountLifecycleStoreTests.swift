@@ -21,6 +21,7 @@ private final class FakeAccountLifecycleClient: AccountLifecycleClient {
         deletionPolicy: DeletionPolicySummary(enabled: false, policyVersion: nil, slaDays: nil)
     )
     var registrationError: Error?
+    var smsError: Error?
     var sessionError: Error?
     var statusError: Error?
     var registrationDelayNanoseconds: UInt64 = 0
@@ -34,6 +35,7 @@ private final class FakeAccountLifecycleClient: AccountLifecycleClient {
 
     func sendSMS(to phone: String) async throws {
         smsPhones.append(phone)
+        if let smsError { throw smsError }
     }
 
     func register(_ request: RegistrationRequest) async throws -> RegistrationResponse {
@@ -135,6 +137,45 @@ final class AccountLifecycleStoreTests: XCTestCase {
         XCTAssertTrue(store.registrationPasswordConfirmation.isEmpty)
         XCTAssertTrue(store.registrationChallengeToken.isEmpty)
         XCTAssertEqual(store.state, .failure("网络不可用，请检查网络后重试"))
+    }
+
+    func testSMSFailurePreservesRegistrationFieldsAndClearsSecrets() async {
+        let client = FakeAccountLifecycleClient()
+        client.smsError = APIError.networkUnavailable
+        let store = AccountLifecycleStore(client: client)
+        fillValidRegistration(on: store)
+        store.registrationChallengeToken = "challenge-token"
+
+        await store.sendRegistrationSMS()
+
+        XCTAssertEqual(store.registrationPhone, "13800000000")
+        XCTAssertEqual(store.registrationName, "测试学生")
+        XCTAssertEqual(store.registrationRegionId, "region-1")
+        XCTAssertTrue(store.registrationPassword.isEmpty)
+        XCTAssertTrue(store.registrationPasswordConfirmation.isEmpty)
+        XCTAssertTrue(store.registrationChallengeToken.isEmpty)
+        XCTAssertEqual(store.state, .failure("网络不可用，请检查网络后重试"))
+    }
+
+    func testChallengeFailurePreservesNonSecretsAndClearsBothFlowSecrets() {
+        let store = AccountLifecycleStore(client: FakeAccountLifecycleClient())
+        fillValidRegistration(on: store)
+        store.registrationChallengeToken = "registration-challenge"
+        store.managementPhone = "13900000000"
+        store.managementPassword = "Management123"
+        store.managementChallengeToken = "management-challenge"
+
+        store.challengeFailed("人机验证失败，请重试")
+
+        XCTAssertEqual(store.registrationPhone, "13800000000")
+        XCTAssertEqual(store.registrationName, "测试学生")
+        XCTAssertEqual(store.managementPhone, "13900000000")
+        XCTAssertTrue(store.registrationPassword.isEmpty)
+        XCTAssertTrue(store.registrationPasswordConfirmation.isEmpty)
+        XCTAssertTrue(store.registrationChallengeToken.isEmpty)
+        XCTAssertTrue(store.managementPassword.isEmpty)
+        XCTAssertTrue(store.managementChallengeToken.isEmpty)
+        XCTAssertEqual(store.state, .failure("人机验证失败，请重试"))
     }
 
     func testUnknownAndWrongPasswordUseSameManagementFailure() async {

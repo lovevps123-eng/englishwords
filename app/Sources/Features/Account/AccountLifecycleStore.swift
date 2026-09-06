@@ -110,6 +110,7 @@ final class AccountLifecycleStore {
             try await client.sendSMS(to: phone)
             smsMessage = "验证码已发送；如当前环境未启用短信，可留空继续申请"
         } catch {
+            clearRegistrationSecrets()
             state = .failure(message(for: error))
         }
     }
@@ -237,8 +238,8 @@ final class AccountLifecycleStore {
     }
 
     func challengeFailed(_ message: String) {
-        registrationChallengeToken = ""
-        managementChallengeToken = ""
+        clearRegistrationSecrets()
+        clearManagementSecrets()
         state = .failure(message)
     }
 
