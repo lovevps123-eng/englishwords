@@ -632,6 +632,38 @@ final class AccountLifecycleStoreTests: XCTestCase {
         XCTAssertEqual(store.state, .failure("此注销回执不属于当前登录账号"))
     }
 
+    func testConflictingManagementAndLearningSubjectsDoNotQueryOrClearReceipt() async {
+        let client = FakeAccountLifecycleClient()
+        client.receiptStatusResponse = ReceiptStatusResponse(
+            status: .completed,
+            requestedAt: Date(timeIntervalSince1970: 1_000),
+            dueAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
+            cancelledAt: nil,
+            failureCategory: nil
+        )
+        let receipts = FakeDeletionReceiptStore()
+        receipts.record = DeletionReceiptRecord(
+            receipt: "receipt-a", requestID: "deletion-a", accountSubject: accountSubjectA
+        )
+        let learningCredentials = FakeLearningCredentialStore(subject: accountSubjectB)
+        let cleaner = FakeAccountDataCleaner(receiptStore: receipts)
+        let store = AccountLifecycleStore(
+            client: client,
+            receiptStore: receipts,
+            learningCredentialStore: learningCredentials,
+            dataCleaner: cleaner
+        )
+        await authenticateActiveAccount(store, client: client)
+
+        await store.refreshReceiptStatus()
+
+        XCTAssertTrue(client.queriedReceipts.isEmpty)
+        XCTAssertEqual(cleaner.clearCount, 0)
+        XCTAssertEqual(receipts.record?.receipt, "receipt-a")
+        XCTAssertEqual(store.state, .failure("此注销回执不属于当前登录账号"))
+    }
+
     func testAccountSwitchDuringCompletedReceiptQueryPreventsCleanup() async {
         let client = FakeAccountLifecycleClient()
         client.receiptStatusResponse = ReceiptStatusResponse(

@@ -321,6 +321,11 @@ final class AccountLifecycleStore {
             state = .failure("账号管理凭据无效，请重新验证")
             return
         }
+        guard case .subject(let currentSubject) = currentAccountSubject(),
+              currentSubject == accountSubject else {
+            state = .failure("账号凭据不一致，请重新登录")
+            return
+        }
 
         isDeletionInFlight = true
         deletionMessage = nil
@@ -472,15 +477,30 @@ final class AccountLifecycleStore {
     }
 
     private func currentAccountSubject() -> CurrentAccountSubject {
+        let managementSubject: String?
         if let managementToken {
             guard let subject = Self.jwtSubject(from: managementToken) else { return .invalid }
-            return .subject(subject)
+            managementSubject = subject
+        } else {
+            managementSubject = nil
         }
+
+        let learningSubject: String?
         if let accessToken = learningCredentialStore.loadTokens()?.access {
             guard let subject = Self.jwtSubject(from: accessToken) else { return .invalid }
-            return .subject(subject)
+            learningSubject = subject
+        } else {
+            learningSubject = nil
         }
-        return .none
+
+        switch (managementSubject, learningSubject) {
+        case let (.some(management), .some(learning)) where management != learning:
+            return .invalid
+        case let (.some(subject), _), let (_, .some(subject)):
+            return .subject(subject)
+        case (nil, nil):
+            return .none
+        }
     }
 
     private static func jwtSubject(from token: String) -> String? {
