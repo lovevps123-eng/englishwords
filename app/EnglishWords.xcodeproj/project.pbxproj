@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05A8C2BA37F8025DF4CFEAEE /* KeychainStoreLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072986A195E6022332B03E75 /* KeychainStoreLifecycleTests.swift */; };
 		0A00E2199EB33218A8A74AFD /* SmokeAuto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB3318E342045A2006195CC /* SmokeAuto.swift */; };
 		128C6204F5E147AD777F98BE /* SpeakingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F45F60936D7C73A30999005 /* SpeakingStore.swift */; };
 		197DA9CCC0EA22C472200EAC /* ReadingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680B345FBE280BD1BA2458E9 /* ReadingListView.swift */; };
@@ -14,6 +15,7 @@
 		25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D1C23D3C55A214D957A2982 /* SmokeTests.swift */; };
 		3052FCD29F6A9FCD831F1E97 /* APIClientSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FB87F48109C30419D88FB1 /* APIClientSecurityTests.swift */; };
 		3F1638C336982977D7630D6D /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0C20393A2344FBC638EF5B /* TodayView.swift */; };
+		43209B44B6DAF60AE6B3C0F5 /* TurnstileChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 646F2C9FA5E298E6D569A550 /* TurnstileChallengeView.swift */; };
 		4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */; };
 		4825E6ADAEF8DDA398C451E4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF5A66EB4E4166293AEEEF0 /* SettingsView.swift */; };
 		484968C8BD25BFC090A77058 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5D76B402932E44F56134352 /* Assets.xcassets */; };
@@ -27,6 +29,7 @@
 		7372F92B8985056328479B53 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F2E33609161938221D63D1 /* RootView.swift */; };
 		7D9E04B1A48FD020881114DB /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */; };
 		87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92992ADCF557ED09396616C /* DTOTests.swift */; };
+		8757FF85257F796B141E2987 /* TurnstileChallengeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D190934AA6AD4DBC7008AF3 /* TurnstileChallengeTests.swift */; };
 		A48901CBB435B76A141524E1 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982EC216281476DED6532A3E /* KeychainStore.swift */; };
 		AE4BDB8A89A5DC014217F4F2 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCDCB476E2DCC1A098784CE /* SettingsStore.swift */; };
 		AEEC51228FA40D379A3D90AA /* ReadingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B85FABAB90F245A17CD53776 /* ReadingDetailView.swift */; };
@@ -56,6 +59,7 @@
 
 /* Begin PBXFileReference section */
 		018D5B46BAE62D064B9AD442 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		072986A195E6022332B03E75 /* KeychainStoreLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStoreLifecycleTests.swift; sourceTree = "<group>"; };
 		10E185D3E84355D37A51A67F /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
 		18E43F499BE06780638E49AB /* VocabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabView.swift; sourceTree = "<group>"; };
 		1AD211B88A972F69B247B1B4 /* WordDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiff.swift; sourceTree = "<group>"; };
@@ -70,6 +74,7 @@
 		5F45F60936D7C73A30999005 /* SpeakingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakingStore.swift; sourceTree = "<group>"; };
 		62A6812FB507026EBBB581E8 /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
 		6461861EC24E05C99B54F17C /* APIClientRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientRefreshTests.swift; sourceTree = "<group>"; };
+		646F2C9FA5E298E6D569A550 /* TurnstileChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnstileChallengeView.swift; sourceTree = "<group>"; };
 		680B345FBE280BD1BA2458E9 /* ReadingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingListView.swift; sourceTree = "<group>"; };
 		6EECC2BDB66121703F646D8F /* SmokeAutoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeAutoTests.swift; sourceTree = "<group>"; };
 		769181079DF5D4C6754AEE53 /* ReadingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStore.swift; sourceTree = "<group>"; };
@@ -79,6 +84,7 @@
 		95B70E0CF838A014B6242558 /* WordDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDiffTests.swift; sourceTree = "<group>"; };
 		96995F6C1A70BFC24A3EDE68 /* EnglishWords.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EnglishWords.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		982EC216281476DED6532A3E /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		9D190934AA6AD4DBC7008AF3 /* TurnstileChallengeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnstileChallengeTests.swift; sourceTree = "<group>"; };
 		9E86F0A31339CB972805650F /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
 		A5B2A9C9CAEE9A321DAECAF5 /* Recognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recognizer.swift; sourceTree = "<group>"; };
 		A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStoreTests.swift; sourceTree = "<group>"; };
@@ -130,6 +136,7 @@
 			children = (
 				F3DC97E0AE7655BC1EF9CC28 /* AuthStore.swift */,
 				B03DB5E77BE8842D2F6C2DCE /* LoginView.swift */,
+				646F2C9FA5E298E6D569A550 /* TurnstileChallengeView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -205,10 +212,12 @@
 				35FB87F48109C30419D88FB1 /* APIClientSecurityTests.swift */,
 				9E86F0A31339CB972805650F /* AppConfigurationTests.swift */,
 				C92992ADCF557ED09396616C /* DTOTests.swift */,
+				072986A195E6022332B03E75 /* KeychainStoreLifecycleTests.swift */,
 				A62D7E0B4B84A792341DFC9A /* ReadingStoreTests.swift */,
 				A67895A6770898C4C4C45236 /* SettingsStoreTests.swift */,
 				6EECC2BDB66121703F646D8F /* SmokeAutoTests.swift */,
 				5D1C23D3C55A214D957A2982 /* SmokeTests.swift */,
+				9D190934AA6AD4DBC7008AF3 /* TurnstileChallengeTests.swift */,
 				803964B2E65E8CF6F2E7D89F /* VocabStoreTests.swift */,
 				95B70E0CF838A014B6242558 /* WordDiffTests.swift */,
 			);
@@ -347,6 +356,7 @@
 				128C6204F5E147AD777F98BE /* SpeakingStore.swift in Sources */,
 				F2CBFC7C6CD8E2DE9FB3217A /* SpeakingView.swift in Sources */,
 				3F1638C336982977D7630D6D /* TodayView.swift in Sources */,
+				43209B44B6DAF60AE6B3C0F5 /* TurnstileChallengeView.swift in Sources */,
 				D5B2A58C69189F43CB71D19C /* VocabModels.swift in Sources */,
 				B39BA0C4AE27BE6D7D525BAC /* VocabStore.swift in Sources */,
 				E732A44C490259FFDC9BAD9E /* VocabView.swift in Sources */,
@@ -363,10 +373,12 @@
 				3052FCD29F6A9FCD831F1E97 /* APIClientSecurityTests.swift in Sources */,
 				D74DF868A697328CE44CE8C1 /* AppConfigurationTests.swift in Sources */,
 				87464A1052C077FD8C82B6D4 /* DTOTests.swift in Sources */,
+				05A8C2BA37F8025DF4CFEAEE /* KeychainStoreLifecycleTests.swift in Sources */,
 				4389A331867E252727291F92 /* ReadingStoreTests.swift in Sources */,
 				4F55C4FF2328E7C5864818E4 /* SettingsStoreTests.swift in Sources */,
 				5AD6473872B542245D70DD8B /* SmokeAutoTests.swift in Sources */,
 				25DAD1D356E89CC0E500A04B /* SmokeTests.swift in Sources */,
+				8757FF85257F796B141E2987 /* TurnstileChallengeTests.swift in Sources */,
 				E3FF9877365D94C1A283D6A4 /* VocabStoreTests.swift in Sources */,
 				5BBBC1DAA379B6BBF6B6CD7E /* WordDiffTests.swift in Sources */,
 			);

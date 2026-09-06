@@ -41,6 +41,201 @@ struct TokenResponse: Decodable {
     }
 }
 
+// MARK: - Account lifecycle
+
+struct PublicRegion: Decodable, Equatable, Identifiable {
+    let id: String
+    let name: String
+}
+
+struct RegistrationRequest: Encodable {
+    let phone: String
+    let password: String
+    let name: String
+    let grade: String?
+    let school: String?
+    let regionId: String
+    let turnstileToken: String?
+    let smsCode: String?
+
+    enum CodingKeys: String, CodingKey {
+        case phone
+        case password
+        case name
+        case grade
+        case school
+        case regionId = "region_id"
+        case turnstileToken = "turnstile_token"
+        case smsCode = "sms_code"
+    }
+}
+
+enum RegistrationStatus: String, Decodable {
+    case pendingApproval = "pending_approval"
+}
+
+struct RegistrationResponse: Decodable {
+    let message: String
+    let status: RegistrationStatus
+    let pendingApproval: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case message
+        case status
+        case pendingApproval = "pending_approval"
+    }
+}
+
+struct AccountSessionRequest: Encodable {
+    let phone: String
+    let password: String
+    let turnstileToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case phone
+        case password
+        case turnstileToken = "turnstile_token"
+    }
+}
+
+struct AccountSessionResponse: Decodable {
+    let accountManagementToken: String
+    let tokenType: String
+    let expiresIn: Int
+
+    enum CodingKeys: String, CodingKey {
+        case accountManagementToken = "account_management_token"
+        case tokenType = "token_type"
+        case expiresIn = "expires_in"
+    }
+}
+
+enum AccountStatus: String, Decodable, Equatable {
+    case pendingApproval = "pending_approval"
+    case active
+    case rejected
+    case disabled
+    case deleting
+}
+
+enum DeletionRequestStatus: String, Decodable, Equatable {
+    case requested
+    case processing
+    case completed
+    case failed
+    case cancelled
+}
+
+struct DeletionPolicySummary: Decodable, Equatable {
+    let enabled: Bool
+    let policyVersion: String?
+    let slaDays: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case enabled
+        case policyVersion = "policy_version"
+        case slaDays = "sla_days"
+    }
+}
+
+struct DeletionStatusSummary: Decodable, Equatable {
+    let status: DeletionRequestStatus
+    let requestedAt: Date
+    let dueAt: Date
+    let completedAt: Date?
+    let cancelledAt: Date?
+    let failureCategory: String?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case requestedAt = "requested_at"
+        case dueAt = "due_at"
+        case completedAt = "completed_at"
+        case cancelledAt = "cancelled_at"
+        case failureCategory = "failure_category"
+    }
+}
+
+typealias ReceiptStatusResponse = DeletionStatusSummary
+
+struct AccountStatusResponse: Decodable, Equatable {
+    let accountStatus: AccountStatus
+    let rejectionReason: String?
+    let deletionRequest: DeletionStatusSummary?
+    let deletionPolicy: DeletionPolicySummary
+
+    enum CodingKeys: String, CodingKey {
+        case accountStatus = "account_status"
+        case rejectionReason = "rejection_reason"
+        case deletionRequest = "deletion_request"
+        case deletionPolicy = "deletion_policy"
+    }
+}
+
+struct DeletionRequestCommand: Encodable {
+    let confirmation: String
+    let policyVersion: String
+    let reason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case confirmation
+        case policyVersion = "policy_version"
+        case reason
+    }
+}
+
+struct DeletionReceiptStatusRequest: Encodable {
+    let receipt: String
+}
+
+struct DeletionRequestResponse: Decodable, Equatable {
+    let id: String
+    let status: DeletionRequestStatus
+    let policyVersion: String
+    let requestedAt: Date
+    let dueAt: Date
+    let receiptExpiresAt: Date?
+    let cancelledAt: Date?
+    let completedAt: Date?
+    let receipt: String?
+    let idempotent: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case status
+        case policyVersion = "policy_version"
+        case requestedAt = "requested_at"
+        case dueAt = "due_at"
+        case receiptExpiresAt = "receipt_expires_at"
+        case cancelledAt = "cancelled_at"
+        case completedAt = "completed_at"
+        case receipt
+        case idempotent
+    }
+}
+
+struct CancellationResponse: Decodable, Equatable {
+    let id: String
+    let status: DeletionRequestStatus
+    let requestedAt: Date
+    let dueAt: Date
+    let receiptExpiresAt: Date?
+    let cancelledAt: Date?
+    let completedAt: Date?
+    let idempotent: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case status
+        case requestedAt = "requested_at"
+        case dueAt = "due_at"
+        case receiptExpiresAt = "receipt_expires_at"
+        case cancelledAt = "cancelled_at"
+        case completedAt = "completed_at"
+        case idempotent
+    }
+}
+
 // MARK: - Vocab
 
 /// WordPayload.definitions 单条释义：{pos, meaning, example}

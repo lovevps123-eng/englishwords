@@ -9,7 +9,7 @@ extension Notification.Name {
 enum APIError: Error, LocalizedError {
     case invalidURL
     case invalidResponse
-    case server(status: Int, message: String)
+    case server(status: Int, code: String?, message: String)
     case unauthorized
     case decoding(Error)
     case networkUnavailable
@@ -23,7 +23,7 @@ enum APIError: Error, LocalizedError {
             return "服务器地址无效"
         case .invalidResponse:
             return "服务器响应异常"
-        case .server(_, let message):
+        case .server(_, _, let message):
             return message
         case .unauthorized:
             return "登录已过期，请重新登录"
@@ -39,11 +39,45 @@ enum APIError: Error, LocalizedError {
             return "网络请求失败，请稍后重试"
         }
     }
+
+    var code: String? {
+        guard case .server(_, let code, _) = self else { return nil }
+        return code
+    }
 }
 
-/// 后端 FastAPI HTTPException 的标准错误体：{"detail": "..."}
-private struct ErrorDetail: Decodable {
-    let detail: String?
+enum RequestCredential {
+    case none
+    case learning
+    case management(String)
+}
+
+/// 后端 FastAPI HTTPException 同时存在字符串和结构化 detail 两种形式。
+private struct ErrorEnvelope: Decodable {
+    let detail: Detail?
+
+    enum Detail: Decodable {
+        case text(String)
+        case object(code: String?, message: String?)
+
+        private enum CodingKeys: String, CodingKey {
+            case code
+            case message
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let text = try? container.decode(String.self) {
+                self = .text(text)
+                return
+            }
+            let object = try decoder.container(keyedBy: CodingKeys.self)
+            self = .object(
+                code: try object.decodeIfPresent(String.self, forKey: .code),
+                message: try object.decodeIfPresent(String.self, forKey: .message)
+            )
+        }
+    }
 }
 
 final class APIClient {
@@ -85,33 +119,93 @@ final class APIClient {
         configuration.baseURL
     }
 
-    /// 通用请求：自动附 Authorization: Bearer；401 时用 refresh token 重试一次，
-    /// 仍失败则清空 Keychain 并广播 authDidLogout。
+    /// 通用请求：凭据类型必须由调用者显式选择；只有学习凭据会在 401 后 refresh。
     @discardableResult
-    func request(_ path: String, method: String = "GET", body: Data? = nil, authorized: Bool = true) async throws -> Data {
-        try await performRequest(path: path, method: method, body: body, authorized: authorized, allowRefresh: true)
+    func request(
+        _ path: String,
+        method: String = "GET",
+        body: Data? = nil,
+        credential: RequestCredential = .learning
+    ) async throws -> Data {
+        try await performRequest(
+            path: path, method: method, body: body, credential: credential, allowRefresh: true
+        )
     }
 
-    func get<T: Decodable>(_ path: String, authorized: Bool = true) async throws -> T {
-        let data = try await request(path, method: "GET", authorized: authorized)
+    func get<T: Decodable>(
+        _ path: String, credential: RequestCredential = .learning
+    ) async throws -> T {
+        let data = try await request(path, method: "GET", credential: credential)
         return try decode(T.self, from: data)
     }
 
-    func post<Body: Encodable, T: Decodable>(_ path: String, body: Body, authorized: Bool = true) async throws -> T {
+    func post<Body: Encodable, T: Decodable>(
+        _ path: String, body: Body, credential: RequestCredential = .learning
+    ) async throws -> T {
         let encoded: Data
         do {
             encoded = try JSONEncoder().encode(body)
         } catch {
             throw APIError.decoding(error)
         }
-        let data = try await request(path, method: "POST", body: encoded, authorized: authorized)
+        let data = try await request(path, method: "POST", body: encoded, credential: credential)
         return try decode(T.self, from: data)
+    }
+
+    // 兼容现有调用点；新增账号生命周期代码只使用 credential 参数。
+    @discardableResult
+    func request(
+        _ path: String, method: String = "GET", body: Data? = nil, authorized: Bool
+    ) async throws -> Data {
+        try await request(
+            path, method: method, body: body, credential: authorized ? .learning : .none
+        )
+    }
+
+    func get<T: Decodable>(_ path: String, authorized: Bool) async throws -> T {
+        try await get(path, credential: authorized ? .learning : .none)
+    }
+
+    func post<Body: Encodable, T: Decodable>(
+        _ path: String, body: Body, authorized: Bool
+    ) async throws -> T {
+        try await post(path, body: body, credential: authorized ? .learning : .none)
+    }
+
+    static func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+
+            let fractional = ISO8601DateFormatter()
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = fractional.date(from: value) {
+                return date
+            }
+
+            let standard = ISO8601DateFormatter()
+            standard.formatOptions = [.withInternetDateTime]
+            if let date = standard.date(from: value) {
+                return date
+            }
+
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Expected an ISO-8601 date"
+            )
+        }
+        return decoder
     }
 
     // MARK: - Private
 
     private func performRequest(
-        path: String, method: String, body: Data?, authorized: Bool, allowRefresh: Bool
+        path: String,
+        method: String,
+        body: Data?,
+        credential: RequestCredential,
+        allowRefresh: Bool
     ) async throws -> Data {
         guard let endpoint = makeEndpoint(for: path) else { throw APIError.invalidURL }
 
@@ -124,8 +218,15 @@ final class APIClient {
         if let body {
             urlRequest.httpBody = body
         }
-        if authorized, let tokens = keychain.loadTokens() {
-            urlRequest.setValue("Bearer \(tokens.access)", forHTTPHeaderField: "Authorization")
+        switch credential {
+        case .none:
+            break
+        case .learning:
+            if let tokens = keychain.loadTokens() {
+                urlRequest.setValue("Bearer \(tokens.access)", forHTTPHeaderField: "Authorization")
+            }
+        case .management(let token):
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let data: Data
@@ -138,10 +239,14 @@ final class APIClient {
 
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
 
-        if http.statusCode == 401, authorized, allowRefresh {
+        if http.statusCode == 401, case .learning = credential, allowRefresh {
             if await refreshTokens() {
                 return try await performRequest(
-                    path: path, method: method, body: body, authorized: authorized, allowRefresh: false
+                    path: path,
+                    method: method,
+                    body: body,
+                    credential: credential,
+                    allowRefresh: false
                 )
             } else {
                 keychain.clear()
@@ -151,9 +256,21 @@ final class APIClient {
         }
 
         guard (200..<300).contains(http.statusCode) else {
-            let message = (try? JSONDecoder().decode(ErrorDetail.self, from: data))?.detail
-                ?? "请求失败（\(http.statusCode)）"
-            throw APIError.server(status: http.statusCode, message: message)
+            let fallback = "请求失败（\(http.statusCode)）"
+            let detail = (try? Self.makeDecoder().decode(ErrorEnvelope.self, from: data))?.detail
+            switch detail {
+            case .text(let message):
+                throw APIError.server(status: http.statusCode, code: nil, message: message)
+            case .object(let code, let message):
+                let safeMessage = message.flatMap { $0.isEmpty ? nil : $0 } ?? fallback
+                throw APIError.server(
+                    status: http.statusCode,
+                    code: code,
+                    message: safeMessage
+                )
+            case nil:
+                throw APIError.server(status: http.statusCode, code: nil, message: fallback)
+            }
         }
 
         return data
@@ -191,9 +308,13 @@ final class APIClient {
         do {
             let body = try JSONEncoder().encode(RefreshRequest(refreshToken: tokens.refresh))
             let data = try await performRequest(
-                path: "/api/auth/refresh", method: "POST", body: body, authorized: false, allowRefresh: false
+                path: "/api/auth/refresh",
+                method: "POST",
+                body: body,
+                credential: .none,
+                allowRefresh: false
             )
-            let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
+            let decoded = try Self.makeDecoder().decode(TokenResponse.self, from: data)
             return keychain.saveTokens(access: decoded.accessToken, refresh: decoded.refreshToken)
         } catch {
             return false
@@ -202,7 +323,7 @@ final class APIClient {
 
     private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            return try Self.makeDecoder().decode(T.self, from: data)
         } catch {
             throw APIError.decoding(error)
         }

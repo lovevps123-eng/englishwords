@@ -40,7 +40,7 @@ final class ReadingStore {
             )
             return response.status == "exists" ? .alreadyCollected : .collected
         } catch let error as APIError {
-            if case .server(let status, _) = error, status == 404 {
+            if case .server(let status, _, _) = error, status == 404 {
                 return .notFound
             }
             return .failed(error.errorDescription ?? "收藏失败")

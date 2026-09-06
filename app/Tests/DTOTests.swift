@@ -105,6 +105,137 @@ final class DTOTests: XCTestCase {
         XCTAssertNil(obj?["turnstile_token"])
     }
 
+    // MARK: - Account lifecycle
+
+    func testPublicRegionsAndPendingRegistrationContracts() throws {
+        let regions = try decode([PublicRegion].self, #"[{"id":"region-1","name":"北京"}]"#)
+        XCTAssertEqual(regions, [PublicRegion(id: "region-1", name: "北京")])
+
+        let request = RegistrationRequest(
+            phone: "13800000000",
+            password: "password1",
+            name: "审核用户",
+            grade: nil,
+            school: nil,
+            regionId: "region-1",
+            turnstileToken: "challenge-token",
+            smsCode: nil
+        )
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        )
+        XCTAssertEqual(object["region_id"] as? String, "region-1")
+        XCTAssertEqual(object["turnstile_token"] as? String, "challenge-token")
+        XCTAssertNil(object["sms_code"])
+
+        let response = try decode(
+            RegistrationResponse.self,
+            #"{"message":"注册申请已提交","status":"pending_approval","pending_approval":true}"#
+        )
+        XCTAssertEqual(response.status, .pendingApproval)
+        XCTAssertTrue(response.pendingApproval)
+    }
+
+    func testAccountManagementSessionContract() throws {
+        let request = AccountSessionRequest(
+            phone: "13800000000", password: "password1", turnstileToken: "challenge-token"
+        )
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: String]
+        )
+        XCTAssertEqual(object["turnstile_token"], "challenge-token")
+
+        let response = try decode(
+            AccountSessionResponse.self,
+            #"{"account_management_token":"management-token","token_type":"bearer","expires_in":600}"#
+        )
+        XCTAssertEqual(response.accountManagementToken, "management-token")
+        XCTAssertEqual(response.expiresIn, 600)
+    }
+
+    func testAccountStatusDecodesDeletionPolicyAndFractionalDate() throws {
+        let response = try APIClient.makeDecoder().decode(AccountStatusResponse.self, from: Data("""
+        {
+          "account_status": "rejected",
+          "rejection_reason": "资料不完整",
+          "deletion_request": {
+            "status": "requested",
+            "requested_at": "2026-09-06T01:02:03.123Z",
+            "due_at": "2026-09-13T01:02:03Z",
+            "completed_at": null,
+            "cancelled_at": null,
+            "failure_category": null
+          },
+          "deletion_policy": {
+            "enabled": true,
+            "policy_version": "2026-09-06",
+            "sla_days": 7
+          }
+        }
+        """.utf8))
+
+        XCTAssertEqual(response.accountStatus, .rejected)
+        XCTAssertEqual(response.rejectionReason, "资料不完整")
+        XCTAssertEqual(response.deletionRequest?.status, .requested)
+        let deletionRequest = try XCTUnwrap(response.deletionRequest)
+        XCTAssertEqual(deletionRequest.requestedAt.timeIntervalSince1970, 1_788_656_523.123, accuracy: 0.001)
+        XCTAssertEqual(deletionRequest.dueAt.timeIntervalSince1970, 1_789_261_323, accuracy: 0.001)
+        XCTAssertEqual(response.deletionPolicy, DeletionPolicySummary(
+            enabled: true, policyVersion: "2026-09-06", slaDays: 7
+        ))
+    }
+
+    func testDeletionRequestCancellationAndReceiptContracts() throws {
+        let decoder = APIClient.makeDecoder()
+        let requestResponse = try decoder.decode(DeletionRequestResponse.self, from: Data("""
+        {
+          "id": "request-1",
+          "status": "requested",
+          "policy_version": "2026-09-06",
+          "requested_at": "2026-09-06T01:02:03.123456Z",
+          "due_at": "2026-09-13T01:02:03Z",
+          "receipt_expires_at": "2026-10-13T01:02:03Z",
+          "cancelled_at": null,
+          "completed_at": null,
+          "receipt": "receipt-secret",
+          "idempotent": false
+        }
+        """.utf8))
+        XCTAssertEqual(requestResponse.id, "request-1")
+        XCTAssertEqual(requestResponse.status, .requested)
+        XCTAssertEqual(requestResponse.policyVersion, "2026-09-06")
+        XCTAssertEqual(requestResponse.receipt, "receipt-secret")
+        XCTAssertFalse(requestResponse.idempotent)
+
+        let cancellation = try decoder.decode(CancellationResponse.self, from: Data("""
+        {
+          "id": "request-1",
+          "status": "cancelled",
+          "requested_at": "2026-09-06T01:02:03Z",
+          "due_at": "2026-09-13T01:02:03Z",
+          "receipt_expires_at": "2026-10-13T01:02:03Z",
+          "cancelled_at": "2026-09-07T01:02:03.5Z",
+          "completed_at": null,
+          "idempotent": false
+        }
+        """.utf8))
+        XCTAssertEqual(cancellation.status, .cancelled)
+        XCTAssertNotNil(cancellation.cancelledAt)
+
+        let receipt = try decoder.decode(ReceiptStatusResponse.self, from: Data("""
+        {
+          "status": "failed",
+          "requested_at": "2026-09-06T01:02:03Z",
+          "due_at": "2026-09-13T01:02:03.25Z",
+          "completed_at": null,
+          "cancelled_at": null,
+          "failure_category": "external_file_cleanup"
+        }
+        """.utf8))
+        XCTAssertEqual(receipt.status, .failed)
+        XCTAssertEqual(receipt.failureCategory, "external_file_cleanup")
+    }
+
     // MARK: - Reading
 
     func testArticleListResponseDecodingSnakeCase() throws {

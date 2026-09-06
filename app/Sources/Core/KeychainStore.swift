@@ -10,11 +10,14 @@ struct AuthTokens: Equatable {
 final class KeychainStore {
     static let shared = KeychainStore()
 
-    private let service = "com.masf.englishwords.auth"
+    private let service: String
     private let accessAccount = "accessToken"
     private let refreshAccount = "refreshToken"
+    private let deletionReceiptAccount = "deletionReceipt"
 
-    private init() {}
+    init(service: String = "com.masf.englishwords.auth") {
+        self.service = service
+    }
 
     /// 落盘 access/refresh 两个条目；只要有一个写入失败（SecItemAdd 返回非 errSecSuccess）就整体判失败，
     /// 调用方（AuthStore.login）需要据此提示用户而不是误判为已登录。
@@ -38,6 +41,20 @@ final class KeychainStore {
         let deletedAccess = delete(account: accessAccount)
         let deletedRefresh = delete(account: refreshAccount)
         return deletedAccess && deletedRefresh
+    }
+
+    @discardableResult
+    func saveDeletionReceipt(_ receipt: String) -> Bool {
+        save(receipt, account: deletionReceiptAccount)
+    }
+
+    func loadDeletionReceipt() -> String? {
+        load(account: deletionReceiptAccount)
+    }
+
+    @discardableResult
+    func clearDeletionReceipt() -> Bool {
+        delete(account: deletionReceiptAccount)
     }
 
     private func baseQuery(account: String) -> [String: Any] {
