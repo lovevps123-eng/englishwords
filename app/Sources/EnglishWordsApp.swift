@@ -7,6 +7,7 @@ struct EnglishWordsApp: App {
     let modelContainer: ModelContainer
     @State private var appStore = AppStore()
     @State private var authStore = AuthStore()
+    @State private var accountLifecycleStore = AccountLifecycleStore()
     @State private var vocabStore: VocabStore
     @State private var settingsStore = SettingsStore()
     @State private var readingStore = ReadingStore()
@@ -32,6 +33,7 @@ struct EnglishWordsApp: App {
             }
             .environment(appStore)
             .environment(authStore)
+            .environment(accountLifecycleStore)
             .environment(vocabStore)
             .environment(settingsStore)
             .environment(readingStore)

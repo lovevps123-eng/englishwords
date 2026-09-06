@@ -1,4 +1,4 @@
-// LoginView.swift — 手机号+密码登录页。v1 不做注册流程，引导用户去网页版注册。
+// LoginView.swift — 手机号+密码登录页，并提供原生账号申请和受限状态查询入口。
 import SwiftUI
 
 struct LoginView: View {
@@ -56,9 +56,22 @@ struct LoginView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!canSubmit)
 
-                Text("还没有账号？请先在网页版注册")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 10) {
+                    NavigationLink("申请账号") {
+                        RegistrationView()
+                    }
+                    NavigationLink("查看申请 / 管理账号") {
+                        AccountManagementView()
+                    }
+                }
+                .font(.footnote)
+
+                if authStore.restrictedAccountStatus != nil {
+                    Text("此账号不能进入学习功能，可通过上方入口查看具体状态。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
 
                 Spacer()
             }
@@ -87,4 +100,5 @@ struct LoginView: View {
 #Preview {
     LoginView()
         .environment(AuthStore())
+        .environment(AccountLifecycleStore())
 }

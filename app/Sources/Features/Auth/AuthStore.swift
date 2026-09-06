@@ -6,6 +6,7 @@ final class AuthStore {
     private(set) var isAuthenticated: Bool
     var errorMessage: String?
     private(set) var isLoading = false
+    private(set) var restrictedAccountStatus: AccountStatus?
 
     private let keychain: KeychainStore
     private let apiClient: APIClient
@@ -34,6 +35,7 @@ final class AuthStore {
     @MainActor
     func login(phone: String, password: String) async {
         errorMessage = nil
+        restrictedAccountStatus = nil
         isLoading = true
         defer { isLoading = false }
 
@@ -50,12 +52,39 @@ final class AuthStore {
             }
             isAuthenticated = true
         } catch {
-            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            if let apiError = error as? APIError,
+               let status = Self.restrictedStatus(forServerCode: apiError.code) {
+                restrictedAccountStatus = status
+                errorMessage = Self.loginMessage(for: status)
+            } else {
+                errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            }
         }
     }
 
     func logout() {
         keychain.clear()
         isAuthenticated = false
+        restrictedAccountStatus = nil
+    }
+
+    static func restrictedStatus(forServerCode code: String?) -> AccountStatus? {
+        switch code {
+        case "ACCOUNT_PENDING_APPROVAL": .pendingApproval
+        case "ACCOUNT_REJECTED": .rejected
+        case "ACCOUNT_DISABLED": .disabled
+        case "ACCOUNT_DELETING": .deleting
+        default: nil
+        }
+    }
+
+    private static func loginMessage(for status: AccountStatus) -> String {
+        switch status {
+        case .pendingApproval: "账号正在等待管理员审核"
+        case .rejected: "账号申请未通过，请查看申请状态"
+        case .disabled: "账号当前已停用，请查看账号状态"
+        case .deleting: "账号正在注销处理中"
+        case .active: "账号状态异常，请稍后重试"
+        }
     }
 }
