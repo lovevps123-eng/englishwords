@@ -51,4 +51,4 @@ git diff --check
 
 ## 未执行
 
-截图和 IPA 尚未上传 App Store Connect，未发布 Apple 隐私标签，也未提交 App Review；当前仅保存了部分元数据草稿。生产注销开关仍为 `false`，未执行真实账号删除。
+Build 2 已于 2026-09-06 22:08 JST 上传成功（`Upload succeeded`、`EXPORT SUCCEEDED`），Apple 返回正在处理。截图尚未上传，未发布 Apple 隐私标签，也未提交 App Review；已保存部分元数据草稿。生产注销开关仍为 `false`，未执行真实账号删除。

@@ -1,6 +1,6 @@
 # Love English 商店文案草稿
 
-状态：App Store Connect `Prepare for Submission`；中文推广文本、描述、关键词、支持网址、版权和审核联系邮箱已保存为草稿，截图与新构建尚未上传，也未提交审核。适用：iOS 1.0。
+状态：App Store Connect `Prepare for Submission`；中文推广文本、描述、关键词、支持网址、版权和审核联系邮箱已保存为草稿，Build 2 已上传并等待 Apple 处理，截图尚未上传，也未提交审核。适用：iOS 1.0。
 
 ## 名称
 

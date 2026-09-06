@@ -2,7 +2,7 @@
 
 编制日期：2026-09-05。App：Love English 每日学英语，iOS 1.0，Bundle ID `com.masf.englishwords`。
 
-App Store Connect 中 Love English 1.0 当前为 `Prepare for Submission`，部分中文元数据已保存为草稿；截图和新构建尚未上传，也未提交 App Review。生产后端和无需登录的隐私／支持页面已上线验证，App 源码包含注册审批、账号注销及隐私／支持入口；生产注销开关仍关闭，政策中的 SLA／留存规则仍待定稿。**材料齐备不代表已经满足上架条件。**
+App Store Connect 中 Love English 1.0 当前为 `Prepare for Submission`，部分中文元数据已保存为草稿；Build 2 已上传并等待 Apple 处理，截图尚未上传，也未提交 App Review。生产后端和无需登录的隐私／支持页面已上线验证，App 源码包含注册审批、账号注销及隐私／支持入口；生产注销开关仍关闭，政策中的 SLA／留存规则仍待定稿。**材料齐备不代表已经满足上架条件。**
 
 ## 文案与核对材料
 

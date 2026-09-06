@@ -12,11 +12,12 @@
 - 隐私清单的 UserDefaults 理由 `CA92.1` 已验证。
 - 运营主体使用 `shaofei Ma（韶飞 麻）`，App Store 版权字段使用 `2026 shaofei Ma`。
 - App Store Connect 登录已恢复；Love English 1.0 为 `Prepare for Submission`。中文推广文本、512 字描述、关键词、支持 URL、版权和审核联系邮箱已成功保存为草稿，页面无错误。
-- Apple 上已有 2026-09-02 上传的旧 `1.0 (1)`，不能代表本次账号生命周期版本。本次构建号已递增为 `2`，`build/LoveEnglish-1.0-2.xcarchive` 归档成功，正在上传；上传成功和 Apple 处理完成须另行记录。
+- Apple 上已有 2026-09-02 上传的旧 `1.0 (1)`，不能代表本次账号生命周期版本。本次构建号已递增为 `2`，`build/LoveEnglish-1.0-2.xcarchive` 归档成功；2026-09-06 22:08 JST 上传成功，Apple 返回 `Uploaded package is processing`。Apple 处理完成须另行记录。
+- 审核联系人与用户指定的 Brick Smash 8x8 一致，审核凭据已保存在 Apple 的审核资料中。生产只读查询确认审核专用账号活跃且注销申请数为 0；公开材料不记录电话或凭据。
 
 ## 剩余门禁
 
-- 截图尚未上传；Build 2 上传进行中，尚未提交 App Review；当前已完成部分元数据草稿保存。
+- 截图尚未上传；Build 2 已上传、等待 Apple 处理，尚未提交 App Review；当前已完成部分元数据草稿保存。
 - 隔离 HTTP／PostgreSQL／Redis／worker 生命周期验证已通过（后端提交 `682cbae`，25 个 PostgreSQL 用例及 live smoke 通过）；iOS 相关测试和构建也已通过。生产注销开关仍为 `false`，待确认 SLA、服务端数据留存及备份处理规则并完成 worker 启用。
 - 隐私政策生效日期和最终留存文案仍待定稿。
 - 文章等内容的使用与截图展示授权仍待明确，不能推断已有授权。
